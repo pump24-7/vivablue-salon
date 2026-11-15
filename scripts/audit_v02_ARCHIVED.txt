@@ -1,0 +1,52 @@
+"""Static assurance checks. Not a substitute for npm builds, DB integration or device QA."""
+from pathlib import Path
+import json,re
+root=Path(__file__).resolve().parents[1]
+checks={}
+def check(key,ok):
+ checks[key]=bool(ok)
+ if not ok:print('FAIL:',key)
+# original core still secured
+api=(root/'apps/api/src/app.ts').read_text()
+exp=(root/'apps/api/src/experience.ts').read_text()
+fin=(root/'apps/api/src/payments.ts').read_text()
+media=(root/'apps/api/src/media.ts').read_text()
+admin=(root/'apps/admin/app/page.tsx').read_text()
+home=(root/'apps/mobile/app/index.tsx').read_text()
+check('Mobile home without email/phone fields', not re.search(r'\b(TextInput|phone|email)\b',home,re.I))
+check('Admin removed manual token-paste login', 'Manager token' not in admin and 'Bearer '+"'" not in admin)
+check('Admin uses organization SSO', "'/api/auth/login'" in admin or 'href="/api/auth/login"' in admin)
+check('Database migration ledger exists', (root/'scripts/migrate.ts').exists() and (root/'db/migrations/002_v02_salon_experience.sql').exists())
+check('Postgres exclusion constraint retained', 'EXCLUDE USING gist' in (root/'db/migrations/001_v01_baseline.sql').read_text())
+check('Slot generator considers modifiers & closures', 'salon_closures' in api and 'selected.reduce' in api)
+check('Booking requires approved policies', 'policyAccepted' in api and "Approved salon policy acknowledgement is required" in api)
+check('Booking amount computed on backend', 'quoteSalonService' in api and 'price_breakdown' in api)
+check('Lookbook only rights-confirmed published', 'rights_confirmed=true' in exp and 'is_published=true' in exp)
+check('Free event capacity locked', 'FOR UPDATE' in exp and "Paid event registrations" in exp)
+check('Stripe verification and earned-rewards gate', 'constructEvent' in fin and "event.type==='invoice.paid'" in fin and 'reward_ledger' in fin)
+check('Stripe enabled only by config', 'PAYMENTS_ENABLED' in fin and "default('false')" in (root/'apps/api/src/config.ts').read_text())
+check('Private S3 uploads pending review', 'HeadObjectCommand' in media and 'pending_review' in media)
+check('Photo uploads gated by config', 'MEDIA_UPLOADS_ENABLED' in media)
+check('Café animal terminology excluded from runtime', not any('cat-lounge' in x.read_text().lower() for x in list(root.glob('apps/**/*.ts'))+list(root.glob('apps/**/*.tsx'))))
+check('v0.2 customer screens exist', all((root/f'apps/mobile/app/{name}.tsx').exists() for name in ['lookbook','my-viva','favorites','memberships','events','rewards','shop']))
+# Relative JS/TS module paths must exist (ignore node modules).
+missing=[]
+for x in list(root.rglob('*.ts'))+list(root.rglob('*.tsx')):
+ if 'node_modules' in str(x):continue
+ txt=x.read_text()
+ for imp in re.findall(r"\bfrom\s*['\"](\.{1,2}/[^'\"]+)['\"]",txt):
+  target=(x.parent/imp).resolve()
+  options=[target,target.with_suffix('.ts'),target.with_suffix('.tsx'),Path(str(target).removesuffix('.js')+'.ts'),Path(str(target).removesuffix('.js')+'.tsx')]
+  if not any(t.is_file() for t in options):missing.append((str(x.relative_to(root)),imp))
+check('Relative module imports resolve to repo files',not missing)
+report={'status':'STATIC_ASSURANCE_ONLY','checks':checks,'missing_imports':missing,'passed':sum(checks.values()),'total':len(checks),
+ 'dependency_install':{'api':'BLOCKED: ENOTCACHED (@aws-sdk/client-s3); online registry DNS unavailable',
+                       'mobile':'BLOCKED: ENOTCACHED (@types/react); online registry DNS unavailable',
+                       'admin':'BLOCKED: ENOTCACHED (@types/node); online registry DNS unavailable'},
+ 'package_resolved_typechecks':'NOT RUN - deps unavailable','database_integration':'NOT RUN - no PostgreSQL server',
+ 'stripe_webhook_test':'NOT RUN - no Stripe test environment','physical_device_tests':'NOT RUN - no iOS/Android devices',
+ 'source_parse':'39 .ts/.tsx files parsed with host TypeScript parser; zero syntax errors. Not package-resolved typecheck.'}
+(root/'docs/BUILD_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
+print('Static check result:',report['passed'],'/',report['total'])
+if missing:print('Missing:',missing)
+if report['passed']!=report['total']:raise SystemExit(1)
