@@ -27,9 +27,12 @@ The official salon logo is linked from https://vivabluesalon.com/images/... (not
 - `db/migrations/001_v01_baseline.sql` initial salon database (from v0.1)
 - `db/migrations/002_v02_salon_experience.sql` additive salon experience tables
 - `db/migrations/003_v03_retire_rewards_memberships.sql` non-destructive retirement safety constraints
+- `db/migrations/004_customer_notifications.sql` additive customer appointment inbox
 - `scripts/migrate.ts` migration command entry point; `apps/api/src/migrations.ts` owns the immutable ledger and API dependencies
 - `scripts/prune_media.ts` abandoned private media cleanup
 - `docs/` design, privacy, finance, QA, change map and deployment gates
+
+Current customer workflow changes and evidence: [Stage 3 validation](docs/STAGE3_VALIDATION.md). Profile editing, shared EN/ES preference, server booking quotes and an in-app appointment inbox are implemented; native device acceptance remains open.
 
 ## Local developer workflow
 
@@ -65,6 +68,7 @@ npm --prefix apps/api run typecheck
 npm --prefix apps/api run build
 npm --prefix apps/api test
 npm --prefix apps/mobile run typecheck
+npm --prefix apps/mobile test
 npm --prefix apps/admin run typecheck
 npm --prefix apps/admin run build
 ```
@@ -79,7 +83,7 @@ npm --prefix apps/admin run dev
 npm --prefix apps/mobile start
 ```
 
-The Expo command starts Metro for a **development client**; a QR code alone does not install that client. `expo-dev-client` is now included. For Android, install Android Studio, the SDK, JDK 17 and an emulator or USB-debuggable device, then run `npm --prefix apps/mobile run android`. For an iOS simulator, use a Mac with Xcode and CocoaPods, then run `npm --prefix apps/mobile run ios`; a physical iPhone additionally needs Apple signing/provisioning (`npm --prefix apps/mobile run ios -- --device`). Native builds can generate `android/` or `ios/` directories. EAS project/profile configuration is still pending; no EAS build or deployment was performed in Stage 1.
+The Expo command starts Metro for a **development client**; a QR code alone does not install that client. `expo-dev-client` is now included. For Android, install Android Studio, the SDK, JDK 17 and an emulator or USB-debuggable device, then run `npm --prefix apps/mobile run android`. For an iOS simulator, use a Mac with Xcode and CocoaPods, then run `npm --prefix apps/mobile run ios`; a physical iPhone additionally needs Apple signing/provisioning (`npm --prefix apps/mobile run ios -- --device`). Native builds can generate `android/` or `ios/` directories. Internal EAS development profiles are included; account/project binding, native builds and signing still require configuration. No remote build or deployment has been performed.
 
 Without a configured identity provider, the public catalog can be exercised but authenticated booking cannot be completed through the mobile UI. Services are deliberately seeded unbookable. Managers must configure approved qualifications, shifts, durations, pricing, consultation requirements and bilingual policies before enabling booking. The automatic regression suite supplies synthetic data and a local test issuer in isolation; it does not create production staff or bypass application authentication. See [Stage 1 verification](docs/STAGE1_STABILIZATION.md) for its commands and remaining limits.
 

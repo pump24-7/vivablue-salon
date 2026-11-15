@@ -26,7 +26,7 @@ pin=base64.b64encode(hashlib.sha256(der).digest()).decode()
 results=[]
 def passed(label):
  results.append(label);print('PASS:',label,flush=True)
-def http(url,token=None,body=None,form=False):
+def http(url,token=None,body=None,form=False,method=None):
  headers={}
  if token:headers['Authorization']='Bearer '+token
  if body is not None:
@@ -34,9 +34,10 @@ def http(url,token=None,body=None,form=False):
   data=(urlencode(body) if form else json.dumps(body)).encode()
  else:data=None
  try:
-  with urlopen(Request(url,data=data,headers=headers),context=tls,timeout=15) as r:return r.status,json.load(r)
+  with urlopen(Request(url,data=data,headers=headers,method=method),context=tls,timeout=15) as r:
+   raw=r.read();return r.status,json.loads(raw) if raw else {}
  except HTTPError as error:return error.code,json.load(error)
-def api(path,token=None,body=None):return http('http://127.0.0.1:4000'+path,token,body)
+def api(path,token=None,body=None,method=None):return http('http://127.0.0.1:4000'+path,token,body,method=method)
 def b64(value):return base64.urlsafe_b64encode(value).decode().rstrip('=')
 def customer_login(browser,register=False,bad_verifier=False):
  context=browser.new_context();page=context.new_page()
@@ -117,13 +118,25 @@ with sync_playwright() as p:
   assert status==200 and api('/api/me',refreshed['access_token'])[0]==200
   token=refreshed['access_token']
   passed('Development provider refresh token returns an API-valid access token')
+  status,profile=api('/api/me',token,{'displayName':'Development Customer','preferredLanguage':'es'},method='PATCH')
+  assert status==200 and profile['user']['display_name']=='Development Customer' and profile['user']['preferred_language']=='es'
+  assert api('/api/me',token)[1]['user']['preferred_language']=='es'
+  assert api('/api/me',token,{'role':'admin'},method='PATCH')[0]==400
+  assert api('/api/admin/overview',token)[0]==403
+  passed('Customer profile/name/language persist; profile mutation cannot grant staff permissions')
   day=(datetime.now(ZoneInfo('America/New_York'))+timedelta(days=2)).date().isoformat()
   status,available=api('/api/availability?'+urlencode({'serviceId':fixtures['serviceId'],
    'stylistId':fixtures['stylistId'],'date':day,'modifierIds':fixtures['modifierId']}))
   assert status==200 and available['slots']
+  status,priced=api('/api/booking-quote?'+urlencode({'serviceId':fixtures['serviceId'],'stylistId':fixtures['stylistId'],
+   'startAt':available['slots'][0],'modifierIds':fixtures['modifierId']}))
+  assert status==200 and priced['quote']['totalCents']==3000 and priced['quote']['serviceMinutes']==60
+  status,policies=api('/api/policies');assert status==200
+  passed('Real API supplies the selected appointment quote before submission')
   status,booked=api('/api/bookings',token,{'serviceId':fixtures['serviceId'],'stylistId':fixtures['stylistId'],
    'startAt':available['slots'][0],'modifierIds':[fixtures['modifierId']],
-   'consultationAck':True,'policyAccepted':True,'idempotencyKey':str(uuid.uuid4())})
+   'consultationAck':True,'policyAccepted':True,'idempotencyKey':str(uuid.uuid4()),
+   'expectedTotalCents':priced['quote']['totalCents'],'policyEffectiveAt':policies['policies']['effective_at']})
   assert status==200 and booked['appointment']['quoted_price_cents']==3000
   appointment=booked['appointment']['id']
   passed('Customer submits a real development appointment with modifier, consent and server price')
@@ -151,6 +164,14 @@ with sync_playwright() as p:
   assert booking_status()=='cancelled'
   expect(page.get_by_text('cancelled',exact=True).first).to_be_visible(timeout=15000)
   passed('Customer cancellation request and admin screen cancellation complete through the existing API bridge')
+  status,inbox=api('/api/me/notifications',token)
+  assert status==200
+  updates=[n for n in inbox['notifications'] if n['appointment_id']==appointment]
+  assert sorted(n['status'] for n in updates)==sorted(['requested','confirmed','cancel_requested','cancelled'])
+  assert api('/api/me/notifications/'+updates[0]['id']+'/read',token,{})[0]==200
+  status,reread=api('/api/me/notifications',token)
+  assert next(n for n in reread['notifications'] if n['id']==updates[0]['id'])['read_at']
+  passed('Booking, admin confirmation and cancellation create durable customer inbox updates with read state')
   page.screenshot(path=str(output/'admin-appointments.png'),full_page=True)
 
   signup=customer_login(browser,register=True)
@@ -158,6 +179,16 @@ with sync_playwright() as p:
   assert status==200 and user['user']['role']=='customer'
   assert api('/api/admin/overview',signup['access_token'])[0]==403
   passed('New account registration at development provider creates a customer record without staff privileges')
+  assert api('/api/me/notifications',signup['access_token'])[1]['notifications']==[]
+  assert api('/api/me/notifications/'+updates[0]['id']+'/read',signup['access_token'],{})[0]==404
+  status,_=http(issuer+'/protocol/openid-connect/revoke',body={'client_id':'vivablue-browser-test',
+   'token':refreshed['refresh_token'],'token_type_hint':'refresh_token'},form=True)
+  assert status==200
+  status,revoked=http(issuer+'/protocol/openid-connect/token',body={'grant_type':'refresh_token',
+   'client_id':'vivablue-browser-test','refresh_token':refreshed['refresh_token']},form=True)
+  assert status==400 and revoked['error']=='invalid_grant'
+  passed('Separate accounts cannot read inbox updates; revoked provider refresh token is rejected')
+
   admin.close()
  finally:browser.close();callback.shutdown();callback.server_close()
 output.joinpath('browser-flow-results.json').write_text(json.dumps({

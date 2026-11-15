@@ -2,6 +2,8 @@
 
 **Stage 1/2 status (2026-11-15): builds, local API/database integration, and interactive admin OIDC/PKCE executed.** See [Stage 1](STAGE1_STABILIZATION.md) and [Stage 2](STAGE2_VALIDATION.md). Provider/browser tests do not certify native device behavior or a production release. Never infer runtime success from syntax parsing.
 
+**Stage 3 update:** [Customer workflow verification](STAGE3_VALIDATION.md) adds 19 mobile tests, 18 reported API/database integration results and 13 real provider/browser checks. Native device acceptance remains open.
+
 | Area | Scenario / expected result | Status |
 |---|---|---|
 | Dependencies | Independent npm lockfiles and `npm ci` API/mobile/admin | PASS on Linux; native platform installs pending |
@@ -26,8 +28,8 @@
 | Booking | qualified stylist, shifts, confirmation, owner-only access, cancellation review and slot release | PASS through manager/customer API routes |
 | Booking | customer API request, confirmation/cancellation through existing admin UI | PASS with actual local identity provider; synthetic fixtures only |
 | Booking | retry successful booking with same idempotency key | PASS; original appointment returned |
-| Booking | inactive/unknown modifier returns 409 | NOT RUN |
-| Booking | `salon_closures` removes affected slots | NOT RUN |
+| Booking | inactive modifier returns 409; time off/closures remove slots | PASS real API/database |
+| Booking | `salon_closures` removes affected slots | PASS real API/database |
 | Booking | day beyond 120-day horizon rejected | NOT RUN |
 | Booking | day selection UTC and America/New_York DST spring/fall | UTC conversion and spring-gap unit tests PASS; fall/device selection pending |
 | Pricing | enabled peak window adds integer cents; outside window zero | PASS unit tests; approved peak + modifier quote verified through API |
@@ -35,7 +37,7 @@
 | Pricing | multiple overlapping active peaks choose max surcharge | NOT RUN |
 | Consent | no published policies or no policy acknowledgment => booking blocked | PASS integration |
 | Consent | consultation type requires explicit acknowledgment | PASS integration |
-| Favorites | only published rights-cleared looks can be saved | NOT RUN |
+| Favorites | rights-cleared publication, withdrawal, owner isolation, retry/removal | PASS real API/database and React Native component tests |
 | Media | signed PUT expires/HEAD metadata verification | NOT RUN |
 | Media | upload requires affirmative image/consent checkbox | STATIC CODE CHECK |
 | Media | unreviewed upload never public | STATIC CODE CHECK |
@@ -46,7 +48,7 @@
 | Finance history | If pre-existing subscriptions exist, operator review/cancellation required | NOT RUN |
 | Commerce | retail in-salon stock notes; web checkout disabled | STATIC REVIEW |
 | Accessibility | VoiceOver/TalkBack/dynamic type/contrast | NOT RUN |
-| Localization | EN/ES service/terms/date and specialist copy | PARTIAL: audit pending |
+| Localization | shared EN/ES preference, navigation and customer status | PASS component/profile tests; full linguistic/device review pending |
 | iOS and Android | physical auth, deeplink, official logo image loading | NOT RUN |
 | Operations | DB backups + restore drills, alerting and rollback | NOT RUN |
 | Owner update | Rewards and Club absent from app routes, UI and API | STATIC AUDIT PASS |
@@ -71,3 +73,17 @@ python3 scripts/audit_v03.py
 Run from the repository root. For database tests, use `TEST_DATABASE_URL` with `npm --prefix apps/api run test:integration` as described in [Stage 1 verification](STAGE1_STABILIZATION.md). `docs/BUILD_REPORT.json` is the historical static-only snapshot. The static checker no longer overwrites it or asserts unexecuted build results; `--output <path>` optionally saves the current static result. No live credentials or real salon data were used.
 
 
+
+## Stage 3 additional scenarios
+
+| Area | Scenario | Result |
+|---|---|---|
+| Profile | self-edit name/language; reject role/identity changes | PASS API, browser/provider and component tests |
+| Session | atomic restore, legacy key adoption, one refresh, stale response/privacy guard | PASS mocked-native mobile tests |
+| Session | temporary refresh failure retains session; revoked grant clears it | PASS mobile tests; real provider refresh revocation also verified |
+| Authentication | database failure returns 500 instead of false expiry | PASS real API/database |
+| Booking review | approved peak quote, changed price/policy rejection, stable retry key | PASS backend and actual service component |
+| Notifications | transaction rollback, owner-only read, idempotent read/cancellation | PASS API/database, browser and inbox component |
+| Events | registration event ID, repeat request, capacity, past-event guard | PASS API/database and event component |
+| Physical phone | install, native return, real SecureStore, foreground and expiry | NOT VERIFIED |
+| External notifications | push/email/SMS/reminder delivery | NOT IMPLEMENTED; in-app inbox only |

@@ -5,7 +5,7 @@
 ## Critical gates
 
 - [ ] Salon owner authorizes name, branding, web photos, imagery, product features and app identifiers.
-- [x] Install dependencies from registry; generate and verify per-application lockfiles with `npm ci` (Stage 1, local changes only).
+- [x] Install dependencies from registry; generate and verify per-application lockfiles with `npm ci` (Stage 1).
 - [ ] Complete dependency vulnerability remediation and review before release; current mobile/admin audit findings remain open.
 - [x] Package-resolved TypeScript API/mobile/admin checks, API/Next builds and Expo 54 compatibility check (Stage 1).
 - [ ] Create isolated managed PostgreSQL and run migrations on staging, test backups and restore; do not touch Nestease DB.
@@ -32,4 +32,4 @@
 
 ## Current QA result
 
-The original static-only delivery report remains in `BUILD_REPORT.json`. Stage 1 installs/builds and local PostgreSQL/JWT appointment tests are recorded in [STAGE1_STABILIZATION.md](STAGE1_STABILIZATION.md). Those results replace the old dependency-blocked status. Production services were not accessed; interactive provider setup, native Android/iOS builds, actual-device runs, remaining security findings and operational release gates remain open. No commit, push, PR or deployment was performed.
+The original static-only delivery report remains in `BUILD_REPORT.json`. Stage 1 build stabilization, Stage 2 local environment and Stage 3 customer workflows are recorded in their `STAGE*_VALIDATION.md` / `STAGE1_STABILIZATION.md` reports. The development branch is published as an unmerged draft PR. Current mobile tests, real API/database/customer/admin flows, and Android/iOS JavaScript exports pass; native binaries and device journeys remain unverified. Profile editing, shared language and in-app appointment updates are implemented. External notification delivery, provider recovery/verification, complete salon administration, dependency remediation and release gates remain open. No production service, live payment, merge or deployment is included.

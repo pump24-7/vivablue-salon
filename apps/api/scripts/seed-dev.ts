@@ -26,7 +26,7 @@ try{
  const identity=await client.query('SELECT current_database() AS db,session_user AS owner');
  if(identity.rows[0].db!=='vivablue_dev'||identity.rows[0].owner!=='vivablue_dev_owner')throw Error('Unexpected development database identity.');
  const ledger=await client.query('SELECT count(*)::int AS n FROM schema_migrations');
- if(ledger.rows[0].n<3)throw Error('Run the complete migration sequence before seeding.');
+ if(ledger.rows[0].n<4)throw Error('Run the complete migration sequence before seeding.');
  await client.query('BEGIN');
  const role=await client.query("SELECT 1 FROM pg_roles WHERE rolname='vivablue_app'");
  if(!role.rowCount)await client.query('CREATE ROLE vivablue_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION');
@@ -37,6 +37,7 @@ try{
  await client.query(`GRANT INSERT,UPDATE,DELETE ON users,services,stylists,stylist_services,stylist_shifts,stylist_time_off,
   appointments,salon_closures,peak_pricing_rules,service_modifiers,lookbook_images,client_favorites,
   retail_products,salon_events,event_registrations,media_uploads,salon_policies TO vivablue_app`);
+ await client.query('GRANT INSERT,UPDATE ON customer_notifications TO vivablue_app');
  await client.query('GRANT INSERT ON audit_logs TO vivablue_app');
  await client.query('GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO vivablue_app');
  for(const user of fixtures.users){

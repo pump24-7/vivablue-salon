@@ -10,6 +10,7 @@ import type {Config} from './config.js';
 import {publicExperience,secureExperience} from './experience.js';
 import {mediaRoutes} from './media.js';
 import {quoteSalonService,type Modifier,type PeakRule} from './salon_pricing.js';
+import {appointmentEvent,customerRoutes} from './customer.js';
 
 const uuid=z.string().uuid();
 const localDate=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -93,13 +94,29 @@ export async function buildApp(config:Config){
   const r=await slotsFor(p.serviceId,p.stylistId,p.date,ids);
   return {slots:r.slots,timezone:r.stylist?.timezone??'America/New_York',reason:r.reason};
  });
+ app.get('/api/booking-quote',async req=>{
+  const v=z.object({serviceId:uuid,stylistId:uuid,startAt:z.string().datetime({offset:true}),modifierIds:z.string().max(450).optional()}).parse(req.query);
+  const ids=v.modifierIds?v.modifierIds.split(',').map(x=>uuid.parse(x)):[];
+  const st=await queryOne<{timezone:string}>(`SELECT sa.timezone FROM stylists st JOIN salons sa ON sa.id=st.salon_id WHERE st.id=$1`,[v.stylistId]);
+  if(!st)throw err('Stylist unavailable',404);
+  const start=DateTime.fromISO(v.startAt).toUTC();
+  if(!start.isValid)throw err('Invalid time',400);
+  const normalized=start.toISO({suppressMilliseconds:true})!;
+  const avail=await slotsFor(v.serviceId,v.stylistId,start.setZone(st.timezone).toISODate()!,ids);
+  if(avail.reason!==null||!avail.slots.includes(normalized))throw err('Selected slot is unavailable. Refresh and choose another.',409);
+  return {quote:quoteSalonService({baseMinutes:avail.service.duration_minutes!,bufferMinutes:avail.service.buffer_minutes,
+   basePriceCents:avail.service.starting_price_cents,selected:avail.selected,startsAt:normalized,
+   timezone:st.timezone,peakRules:await peakRules(avail.stylist.salon_id)})};
+ });
  await publicExperience(app);
  app.register(async protectedRoutes=>{
   protectedRoutes.addHook('preHandler',auth);
   protectedRoutes.get('/api/me',async req=>({user:await queryOne('SELECT id,display_name,role,preferred_language FROM users WHERE id=$1',[actor(req)])}));
+  await customerRoutes(protectedRoutes);
   protectedRoutes.post('/api/bookings',async req=>{
    const v=z.object({serviceId:uuid,stylistId:uuid,startAt:z.string().datetime({offset:true}),
-    idempotencyKey:uuid,customerNote:z.string().max(1000).optional(),modifierIds:z.array(uuid).max(8).default([]),consultationAck:z.boolean().default(false),policyAccepted:z.boolean().default(false)}).parse(req.body);
+    idempotencyKey:uuid,customerNote:z.string().max(1000).optional(),modifierIds:z.array(uuid).max(8).default([]),consultationAck:z.boolean().default(false),policyAccepted:z.boolean().default(false),
+    expectedTotalCents:z.number().int().nonnegative().nullable().optional(),policyEffectiveAt:z.string().datetime({offset:true}).optional()}).parse(req.body);
    const start=DateTime.fromISO(v.startAt).toUTC();
    if(!start.isValid)throw err('Invalid time',400);
    const previous=await queryOne<any>('SELECT * FROM appointments WHERE customer_id=$1 AND idempotency_key=$2',[actor(req),v.idempotencyKey]);
@@ -113,11 +130,13 @@ export async function buildApp(config:Config){
    if(avail.service.requires_consultation&&!v.consultationAck)throw err('Consultation acknowledgement required',400);
    const policy=await queryOne<{effective_at:string}>(`SELECT effective_at FROM salon_policies WHERE salon_id=$1 AND approved_by IS NOT NULL AND effective_at<=now()`,[avail.stylist.salon_id]);
    if(!policy||!v.policyAccepted)throw err('Approved salon policy acknowledgement is required',409);
+   if(v.policyEffectiveAt&&Date.parse(v.policyEffectiveAt)!==new Date(policy.effective_at).getTime())throw err('Salon policies changed. Review the current policies before booking.',409);
    const stylist=avail.stylist;
    const ruleSet=await peakRules(stylist.salon_id);
    const quote=quoteSalonService({baseMinutes:avail.service.duration_minutes!,bufferMinutes:avail.service.buffer_minutes,
      basePriceCents:avail.service.starting_price_cents,selected:avail.selected,startsAt:normalized,
      timezone:stylist.timezone,peakRules:ruleSet});
+   if(v.expectedTotalCents!==undefined&&v.expectedTotalCents!==quote.totalCents)throw err('The estimate changed. Review the current quote before booking.',409);
    const end=start.plus({minutes:quote.occupiedMinutes});
    try{
     const appointment=await transaction(async c=>{
@@ -130,9 +149,9 @@ export async function buildApp(config:Config){
       RETURNING *`,[actor(req),v.serviceId,normalized,end.toISO(),v.idempotencyKey,quote.totalCents,
          v.customerNote??null,JSON.stringify(avail.selected),JSON.stringify(quote),v.consultationAck,v.stylistId,policy.effective_at]);
      if(!r.rowCount)throw err('Service or stylist no longer available',409);
+     await appointmentEvent(c,actor(req),r.rows[0]);
      return r.rows[0];
     });
-    await audit(actor(req),'booking.requested',appointment.id);
     return {appointment,alreadyCreated:false,message:'Request received. Salon confirmation is required.'};
    }catch(e:any){
     if(e.code==='23505'){
@@ -143,16 +162,21 @@ export async function buildApp(config:Config){
    }
   });
   protectedRoutes.get('/api/bookings',async req=>({appointments:(await pool.query(`SELECT a.id,a.start_at,a.end_at,a.status,a.quoted_price_cents,
-   s.name_en,s.name_es,st.display_name AS stylist_name FROM appointments a
+   a.selected_modifiers,a.price_breakdown,sa.timezone,s.name_en,s.name_es,st.display_name AS stylist_name FROM appointments a
+   JOIN salons sa ON sa.id=a.salon_id
    JOIN services s ON s.id=a.service_id JOIN stylists st ON st.id=a.stylist_id
    WHERE a.customer_id=$1 ORDER BY a.start_at DESC LIMIT 100`,[actor(req)])).rows}));
   protectedRoutes.post('/api/bookings/:id/cancel-request',async req=>{
    const {id}=z.object({id:uuid}).parse(req.params);
-   const result=await pool.query(`UPDATE appointments SET status='cancel_requested',updated_at=now()
-    WHERE id=$1 AND customer_id=$2 AND status IN ('requested','confirmed') RETURNING id,status`,[id,actor(req)]);
-   if(!result.rowCount)throw err('Booking cannot be changed automatically. Contact salon.',409);
-   await audit(actor(req),'booking.cancel_requested',id);
-   return {appointment:result.rows[0],message:'Cancellation requested. Salon will review.'};
+   const appointment=await transaction(async c=>{
+    const result=await c.query(`UPDATE appointments SET status='cancel_requested',updated_at=now()
+     WHERE id=$1 AND customer_id=$2 AND status IN ('requested','confirmed') RETURNING id,status,customer_id`,[id,actor(req)]);
+    if(result.rowCount){await appointmentEvent(c,actor(req),result.rows[0]);return result.rows[0]}
+    const existing=await c.query(`SELECT id,status FROM appointments WHERE id=$1 AND customer_id=$2 AND status='cancel_requested'`,[id,actor(req)]);
+    if(!existing.rowCount)throw err('Booking cannot be changed automatically. Contact salon.',409);
+    return existing.rows[0];
+   });
+   return {appointment,message:'Cancellation requested. Salon will review.'};
   });
   protectedRoutes.get('/api/admin/bookings',{preHandler:managerOnly},async()=>({appointments:(await pool.query(`
    SELECT a.id,a.start_at,a.end_at,a.status,s.name_en,st.display_name AS stylist_name,u.display_name AS customer_name
@@ -162,11 +186,13 @@ export async function buildApp(config:Config){
    const {id}=z.object({id:uuid}).parse(req.params);
    const {status}=z.object({status:z.enum(['confirmed','declined','cancelled','completed'])}).parse(req.body);
    const allowed:Record<string,string[]>={confirmed:['requested'],declined:['requested'],cancelled:['requested','confirmed','cancel_requested'],completed:['confirmed','in_progress']};
-   const r=await pool.query(`UPDATE appointments SET status=$1,updated_at=now()
-    WHERE id=$2 AND status=ANY($3::text[]) RETURNING id,status`,[status,id,allowed[status]]);
-   if(!r.rowCount)throw err('Status transition not allowed',409);
-   await audit(actor(req),'booking.'+status,id);
-   return {appointment:r.rows[0]};
+   const appointment=await transaction(async c=>{
+    const r=await c.query(`UPDATE appointments SET status=$1,updated_at=now()
+     WHERE id=$2 AND status=ANY($3::text[]) RETURNING id,status,customer_id`,[status,id,allowed[status]]);
+    if(!r.rowCount)throw err('Status transition not allowed',409);
+    await appointmentEvent(c,actor(req),r.rows[0]);return r.rows[0];
+   });
+   return {appointment};
   });
   protectedRoutes.post('/api/admin/stylists',{preHandler:managerOnly},async req=>{
    const v=z.object({displayName:z.string().min(2).max(100)}).parse(req.body);

@@ -1,6 +1,6 @@
 # Viva Blue Salon development environment
 
-Stage 2 provides a local PostgreSQL database, actual Fastify API, actual Next.js admin, Expo development server and a local Keycloak identity provider. The original application screens, branding and migrations are retained. See [Stage 2 results](STAGE2_VALIDATION.md) for verified behavior and remaining device requirements.
+Stage 2 provides a local PostgreSQL database, actual Fastify API, actual Next.js admin, Expo development server and a local Keycloak identity provider. Stage 3 extends the existing customer screens and adds profile editing, shared language, server booking quotes and an in-app appointment inbox. Branding and migrations 001–003 are retained; migration 004 adds the inbox. See [Stage 3 results](STAGE3_VALIDATION.md) and [Stage 2 results](STAGE2_VALIDATION.md) for verified behavior and remaining device requirements.
 
 The bootstrap configuration binds to loopback. URLs printed here refer to the computer running these commands; a phone cannot reach a cloud computer through its own `localhost`. No physical Android/iPhone build or native callback has been verified yet.
 
@@ -101,6 +101,8 @@ Do not remove volumes or run old init SQL to work around an error. Changing gene
 node scripts/dev/check.mjs
 npm --prefix apps/api run typecheck
 npm --prefix apps/api test
+npm --prefix apps/mobile run typecheck
+npm --prefix apps/mobile test
 ```
 
 For the repeatable real browser/identity-provider workflow, install Python Playwright and a Chromium browser, then run:
@@ -112,7 +114,7 @@ work/dev/browser-venv/bin/playwright install chromium
 work/dev/browser-venv/bin/python scripts/dev/verify-browser.py
 ```
 
-If Chromium is already installed, the script uses `chromium` on PATH or `VIVABLUE_CHROMIUM_BIN`; otherwise it uses Playwright's installed Chromium. Port 8089 must be free for the temporary loopback callback. The script exercises real admin SSO, PKCE rejection, token refresh, new customer registration, backend role restrictions, appointment submission, confirmation through the existing admin screen, and customer/admin cancellation. It leaves synthetic registrations and cancelled test appointments for inspection and writes results under `work/dev/verification`. The public browser test client is separate from the mobile client: passing these tests does not prove native deep links, SecureStore or a device installation.
+If Chromium is already installed, the script uses `chromium` on PATH or `VIVABLUE_CHROMIUM_BIN`; otherwise it uses Playwright's installed Chromium. Port 8089 must be free for the temporary loopback callback. The script exercises real admin SSO, PKCE rejection, token refresh/revocation, new customer registration, profile/language persistence, backend role restrictions, server quotes, appointment submission, admin confirmation/cancellation and the customer inbox. It leaves synthetic registrations and cancelled test appointments for inspection and writes results under `work/dev/verification`. The public browser test client is separate from the mobile client: passing these tests does not prove native deep links, SecureStore or a device installation.
 
 For manual management testing, open the admin dashboard and choose **Organization SSO sign-in**, then use `dev-manager` with its locally generated password. Review the development stylist/service, create or review test requests, and confirm/decline them in **Appointments**. Use only the explicitly labeled test service and test policies for these fixtures. Exercise real business configuration only in a separately approved environment.
 
@@ -149,4 +151,8 @@ npx eas-cli build --profile development-simulator --platform ios
 
 `development` produces an Android APK and an internal iOS development build. Physical iOS builds require Apple signing/provisioning and registration of the test device; a simulator build needs a Mac simulator instead. EAS project initialization, remote builds and signing have not been performed here. Keep provider client secrets on the API/admin side, never in Expo public variables. Once the client is installed, start Metro on the developer computer with `npm --prefix apps/mobile start -- --lan` and connect that client to it.
 
-The remaining device acceptance test is: launch → sign in/create account → select the development service, modifier and stylist → view available slots → accept test policies/consultation → submit → confirm in admin → refresh customer appointments → request cancellation → cancel in admin. Repeat after app restart and token expiry, on each target platform. Real staff schedules, prices, policies, photos and notification delivery remain separate later-stage work.
+The remaining device acceptance test is: launch → sign in/create account → select the development service, modifier and stylist → view available slots → accept test policies/consultation → submit → confirm in admin → refresh customer appointments → request cancellation → cancel in admin. Repeat after app restart and token expiry, on each target platform. Also test profile/language persistence, saved styles with approved imagery, My Viva counts, in-app updates and switching accounts. Real staff schedules, prices, policies, photos and external push/email/SMS delivery remain separate owner/provider requirements. The inbox updates on focus/foreground and every 30 seconds while its screen is active; it does not send OS push or external messages.
+
+## Upgrade an existing Stage 2 development checkout
+
+Install the new mobile test dependencies with `npm --prefix apps/mobile ci`, apply migration 004 with `npm --prefix apps/api run migrate`, then run `npm --prefix apps/api run seed:dev` to grant the existing isolated runtime role access to its inbox table. Existing data and generated credentials are retained. Never use the development seeder with an operational database. The complete regression command list and device acceptance steps are in [Stage 3 validation](STAGE3_VALIDATION.md).

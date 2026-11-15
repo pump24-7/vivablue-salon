@@ -36,20 +36,21 @@ export async function secureExperience(app:FastifyInstance){
   const r=await pool.query(`INSERT INTO client_favorites(user_id,image_id)
    SELECT $1,id FROM lookbook_images WHERE id=$2 AND is_published=true AND rights_confirmed=true
    ON CONFLICT DO NOTHING RETURNING image_id`,[actor(req),id]);
-  if(!r.rowCount){const existing=await queryOne('SELECT image_id FROM client_favorites WHERE user_id=$1 AND image_id=$2',[actor(req),id]);if(!existing)throw fail('Look not available',404)}
+  if(!r.rowCount){const existing=await queryOne(`SELECT f.image_id FROM client_favorites f JOIN lookbook_images l ON l.id=f.image_id
+   WHERE f.user_id=$1 AND f.image_id=$2 AND l.is_published=true AND l.rights_confirmed=true`,[actor(req),id]);if(!existing)throw fail('Look not available',404)}
   return {saved:true};
  });
  app.delete('/api/me/favorites/:id',async req=>{
   const {id}=z.object({id:uuid}).parse(req.params);
   await pool.query('DELETE FROM client_favorites WHERE user_id=$1 AND image_id=$2',[actor(req),id]);return {saved:false};
  });
- app.get('/api/me/events',async req=>({registrations:(await pool.query(`SELECT r.id,r.seats,r.status,e.title_en,e.title_es,e.starts_at
+ app.get('/api/me/events',async req=>({registrations:(await pool.query(`SELECT r.id,r.event_id,r.seats,r.status,e.title_en,e.title_es,e.starts_at
   FROM event_registrations r JOIN salon_events e ON e.id=r.event_id WHERE r.user_id=$1 ORDER BY e.starts_at DESC`,[actor(req)])).rows}));
  app.post('/api/events/:id/register',async req=>{
   const {id}=z.object({id:uuid}).parse(req.params);
   const {seats}=z.object({seats:z.number().int().min(1).max(10).default(1)}).parse(req.body??{});
   const registration=await transaction(async c=>{
-   const event=await c.query(`SELECT id,capacity,price_cents,status FROM salon_events WHERE id=$1 FOR UPDATE`,[id]);
+   const event=await c.query(`SELECT id,capacity,price_cents,status FROM salon_events WHERE id=$1 AND starts_at>now() FOR UPDATE`,[id]);
    if(!event.rowCount||event.rows[0].status!=='published')throw fail('Event unavailable',404);
    if(event.rows[0].price_cents!==0)throw fail('Paid event registrations are not activated; contact salon.',409);
    const prior=await c.query(`SELECT id,status FROM event_registrations WHERE event_id=$1 AND user_id=$2`,[id,actor(req)]);

@@ -29,7 +29,7 @@ function testDatabase(){
  return url;
 }
 
-test('Stage 1 migrations, authorization and appointment concurrency', {timeout:90000},async t=>{
+test('Customer workflow, migrations, authorization and appointment concurrency', {timeout:90000},async t=>{
  const database=testDatabase();
  const control=new pg.Pool({connectionString:database.toString()});
  t.after(()=>control.end());
@@ -70,17 +70,18 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
    cwd:fixture,env:migrationEnv,timeout:20000
   });
  }
+ const migrationCount=(await readdir(join(root,'db/migrations'))).filter(f=>/^\d+.*\.sql$/.test(f)).length;
  const applicationUrl=await freshSchema();
  const sql=new pg.Pool({connectionString:applicationUrl});
  t.after(()=>sql.end());
  await configureMigration(applicationUrl);
  await t.test('fresh migrations and repeat execution preserve checksums',async()=>{
   const first=await migrate();
-  assert.equal((first.stdout.match(/Applied /g)??[]).length,3);
+  assert.equal((first.stdout.match(/Applied /g)??[]).length,migrationCount);
   const repeated=await migrate();
   assert.doesNotMatch(repeated.stdout,/Applied /);
   const ledger=await sql.query('SELECT version,sha256 FROM schema_migrations ORDER BY version');
-  assert.equal(ledger.rowCount,3);
+  assert.equal(ledger.rowCount,migrationCount);
   for(const row of ledger.rows){
    const source=await readFile(join(root,'db/migrations',row.version));
    assert.equal(row.sha256,createHash('sha256').update(source).digest('hex'));
@@ -90,10 +91,10 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
   const url=await freshSchema();
   await configureMigration(url);
   const results=await Promise.all([migrate(),migrate()]);
-  assert.equal((results.map(result=>result.stdout).join('').match(/Applied /g)??[]).length,3);
+  assert.equal((results.map(result=>result.stdout).join('').match(/Applied /g)??[]).length,migrationCount);
   const client=new pg.Client({connectionString:url});
   await client.connect();
-  try{assert.equal((await client.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,3)}
+  try{assert.equal((await client.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,migrationCount)}
   finally{await client.end()}
   await configureMigration(applicationUrl);
  });
@@ -104,15 +105,15 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
   await writeFile(path,original+'\n-- test-only checksum change\n');
   try{await assert.rejects(migrate(),/Migration checksum mismatch/)}
   finally{await writeFile(path,original)}
-  assert.equal((await sql.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,3);
+  assert.equal((await sql.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,migrationCount);
  });
  await t.test('a failing new migration rolls back its schema changes',async()=>{
-  const path=join(fixture,'db/migrations/004_test_failure.sql');
+  const path=join(fixture,'db/migrations/999_test_failure.sql');
   await writeFile(path,'CREATE TABLE stage1_rollback_probe(id integer); SELECT * FROM stage1_missing_table;');
   try{await assert.rejects(migrate(),/stage1_missing_table/)}
   finally{await rm(path)}
   assert.equal((await sql.query("SELECT to_regclass('stage1_rollback_probe') AS relation")).rows[0].relation,null);
-  assert.equal((await sql.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,3);
+  assert.equal((await sql.query('SELECT count(*)::int AS n FROM schema_migrations')).rows[0].n,migrationCount);
  });
 
  process.env.DATABASE_URL=applicationUrl;
@@ -146,9 +147,9 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
   tokens[subject]=await new SignJWT({role:'admin'}).setProtectedHeader({alg:'RS256',kid:jwk.kid})
    .setSubject(subject).setIssuer(issuer).setAudience(audience).setExpirationTime('10m').sign(privateKey);
  }
- async function request(path:string,subject?:string,body?:unknown,tokenOverride?:string){
+ async function request(path:string,subject?:string,body?:unknown,tokenOverride?:string,method?:string){
   const response=await fetch(address+path,{
-   method:body===undefined?'GET':'POST',signal:AbortSignal.timeout(3000),
+   method:method??(body===undefined?'GET':'POST'),signal:AbortSignal.timeout(3000),
    headers:{...(subject?{authorization:'Bearer '+(tokenOverride??tokens[subject])}:{}),
     ...(body===undefined?{}:{'content-type':'application/json'})},
    body:body===undefined?undefined:JSON.stringify(body)
@@ -210,6 +211,18 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
   assert.equal((await request('/api/bookings','alice',{...candidate,consultationAck:false,idempotencyKey:randomUUID()})).status,400);
   assert.equal((await request('/api/bookings','alice',{...candidate,policyAccepted:false,idempotencyKey:randomUUID()})).status,409);
  });
+ await t.test('review quote includes modifiers and peak pricing; stale price or policies cannot be accepted',async()=>{
+  const query=new URLSearchParams({serviceId,stylistId,startAt:slot,modifierIds:modifierId});
+  const quoted=await request('/api/booking-quote?'+query);
+  assert.equal(quoted.status,200);assert.equal(quoted.body.quote.totalCents,9350);
+  assert.equal(quoted.body.quote.serviceMinutes,80);assert.equal(quoted.body.quote.peakCents,850);
+  query.set('startAt','2026-02-30T15:00:00Z');
+  assert.equal((await request('/api/booking-quote?'+query)).status,400);
+  const candidate={serviceId,stylistId,startAt:slot,modifierIds:[modifierId],consultationAck:true,policyAccepted:true,idempotencyKey:randomUUID()};
+  assert.equal((await request('/api/bookings','alice',{...candidate,expectedTotalCents:1})).status,409);
+  assert.equal((await request('/api/bookings','alice',{...candidate,policyEffectiveAt:'2000-01-01T00:00:00Z'})).status,409);
+  assert.equal((await sql.query('SELECT count(*)::int AS n FROM appointments')).rows[0].n,0);
+ });
  await t.test('two customers racing for one appointment yield exactly one reservation and a server quote',async()=>{
   const candidates=['alice','bob'].map(subject=>({subject,body:{serviceId,stylistId,startAt:slot,
    modifierIds:[modifierId],consultationAck:true,policyAccepted:true,idempotencyKey:randomUUID(),quotedPriceCents:1}}));
@@ -232,12 +245,102 @@ test('Stage 1 migrations, authorization and appointment concurrency', {timeout:9
   await managerPost(`/api/admin/bookings/${bookingId}/status`,{status:'confirmed'});
   assert.equal((await request('/api/bookings',winner)).body.appointments[0].status,'confirmed');
   assert.equal((await request(`/api/bookings/${bookingId}/cancel-request`,winner,{})).body.appointment.status,'cancel_requested');
+  assert.equal((await request(`/api/bookings/${bookingId}/cancel-request`,winner,{})).status,200);
   assert.ok(!(await request(availability())).body.slots.includes(slot));
   await managerPost(`/api/admin/bookings/${bookingId}/status`,{status:'cancelled'});
   assert.ok((await request(availability())).body.slots.includes(slot));
   assert.equal((await request(`/api/admin/bookings/${bookingId}/status`,'manager',{status:'confirmed'})).status,409);
   const actions=(await sql.query('SELECT action FROM audit_logs WHERE resource_id=$1',[bookingId])).rows.map(r=>r.action);
   for(const action of ['booking.requested','booking.confirmed','booking.cancel_requested','booking.cancelled'])assert.ok(actions.includes(action));
+ });
+ await t.test('customer profile edits persist and cannot alter identity or staff privileges',async()=>{
+  const updated=await request('/api/me','alice',{displayName:'  Test Customer  ',preferredLanguage:'es'},undefined,'PATCH');
+  assert.equal(updated.status,200);assert.equal(updated.body.user.display_name,'Test Customer');
+  assert.equal(updated.body.user.preferred_language,'es');assert.equal(updated.body.user.role,'customer');
+  assert.equal((await request('/api/me','alice')).body.user.display_name,'Test Customer');
+  assert.equal((await request('/api/me','bob')).body.user.display_name,null);
+  for(const patch of [{displayName:' '},{preferredLanguage:'fr'},{role:'admin'},{email:'other@example.invalid'},{id:randomUUID()},{displayName:'Valid',role:'manager'},{}]){
+   assert.equal((await request('/api/me','alice',patch,undefined,'PATCH')).status,400);
+  }
+  assert.equal((await request('/api/me',undefined,{displayName:'Anonymous'},undefined,'PATCH')).status,401);
+  assert.equal((await request('/api/admin/overview','alice')).status,403);
+ });
+ await t.test('appointment inbox is durable, owner-only, read-idempotent and contains each transition once',async()=>{
+  const response=await request('/api/me/notifications',winner);
+  assert.equal(response.status,200);assert.equal(response.body.unreadCount,4);
+  const items=response.body.notifications;
+  assert.deepEqual(items.map((n:any)=>n.status).sort(),['requested','confirmed','cancel_requested','cancelled'].sort());
+  assert.ok(items.every((n:any)=>n.appointment_id===bookingId&&n.timezone==='America/New_York'));
+  assert.equal((await request('/api/me/notifications',loser)).body.notifications.length,0);
+  assert.equal((await request('/api/me/notifications')).status,401);
+  assert.equal((await request(`/api/me/notifications/${items[0].id}/read`,loser,{})).status,404);
+  const first=await request(`/api/me/notifications/${items[0].id}/read`,winner,{});
+  const second=await request(`/api/me/notifications/${items[0].id}/read`,winner,{});
+  assert.equal(first.status,200);assert.equal(second.body.notification.read_at,first.body.notification.read_at);
+  assert.equal((await request('/api/me/notifications',winner)).body.unreadCount,3);
+ });
+ await t.test('favorites enforce published rights, isolate accounts, support retries and hide withdrawn imagery',async()=>{
+  const created=await managerPost('/api/admin/lookbook',{imageUrl:'https://example.invalid/synthetic-look.png',captionEn:'Synthetic test',captionEs:'Prueba sintética'});
+  const id=created.look.id,path='/api/me/favorites/'+id;
+  assert.equal((await request(path,'alice',undefined,undefined,'PUT')).status,404);
+  assert.equal((await request(`/api/admin/lookbook/${id}/review`,'manager',{rightsConfirmed:false,publish:true})).status,409);
+  await managerPost(`/api/admin/lookbook/${id}/review`,{rightsConfirmed:true,publish:true});
+  for(let n=0;n<2;n++)assert.equal((await request(path,'alice',undefined,undefined,'PUT')).status,200);
+  assert.equal((await request('/api/me/favorites','alice')).body.looks.length,1);
+  assert.equal((await request('/api/me/favorites','bob')).body.looks.length,0);
+  assert.equal((await request(path,'bob',undefined,undefined,'DELETE')).status,200);
+  assert.equal((await request('/api/me/favorites','alice')).body.looks.length,1);
+  await managerPost(`/api/admin/lookbook/${id}/review`,{rightsConfirmed:false,publish:false});
+  assert.equal((await request('/api/me/favorites','alice')).body.looks.length,0);
+  assert.equal((await request(path,'alice',undefined,undefined,'PUT')).status,404);
+  assert.ok(!(await request('/api/lookbook')).body.looks.some((x:any)=>x.id===id));
+  assert.equal((await request(path,'alice',undefined,undefined,'DELETE')).status,200);
+ });
+ await t.test('unavailable modifiers, time off and salon closures cannot offer appointments',async()=>{
+  await sql.query('UPDATE service_modifiers SET is_enabled=false WHERE id=$1',[modifierId]);
+  assert.equal((await request(availability())).status,409);
+  await sql.query('UPDATE service_modifiers SET is_enabled=true WHERE id=$1',[modifierId]);
+  const next=day.plus({days:1});
+  await sql.query('INSERT INTO stylist_time_off(stylist_id,start_at,end_at) VALUES($1,$2,$3)',[stylistId,next.toISO(),next.plus({days:1}).toISO()]);
+  const query=(date:string)=>'/api/availability?'+new URLSearchParams({serviceId,stylistId,date});
+  assert.deepEqual((await request(query(next.toISODate()!))).body.slots,[]);
+  const salon=(await sql.query('SELECT salon_id FROM stylists WHERE id=$1',[stylistId])).rows[0].salon_id;
+  await sql.query('INSERT INTO salon_closures(salon_id,start_at,end_at) VALUES($1,$2,$3)',[salon,next.plus({days:1}).toISO(),next.plus({days:2}).toISO()]);
+  assert.deepEqual((await request(query(next.plus({days:1}).toISODate()!))).body.slots,[]);
+ });
+ await t.test('notification failure rolls back the entire new appointment and audit event',async()=>{
+  const customer=(await sql.query('SELECT id FROM users WHERE auth_subject=$1',['alice'])).rows[0].id;
+  await sql.query(`CREATE FUNCTION stage3_fail_notification() RETURNS trigger LANGUAGE plpgsql AS $$
+   BEGIN RAISE EXCEPTION 'Synthetic inbox failure'; END; $$`);
+  await sql.query(`CREATE TRIGGER stage3_inbox_failure BEFORE INSERT ON customer_notifications
+   FOR EACH ROW WHEN (NEW.user_id='${customer}'::uuid AND NEW.status='requested') EXECUTE FUNCTION stage3_fail_notification()`);
+  const key=randomUUID();
+  const result=await request('/api/bookings','alice',{serviceId,stylistId,startAt:slot,modifierIds:[modifierId],
+   consultationAck:true,policyAccepted:true,idempotencyKey:key});
+  assert.equal(result.status,500);
+  assert.equal((await sql.query('SELECT count(*)::int AS n FROM appointments WHERE idempotency_key=$1',[key])).rows[0].n,0);
+  assert.equal((await sql.query('SELECT count(*)::int AS n FROM customer_notifications')).rows[0].n,4);
+ });
+ await t.test('database failure during authentication is a server error, not an expired session',async()=>{
+  await sql.query(`CREATE FUNCTION stage3_fail_user() RETURNS trigger LANGUAGE plpgsql AS $$
+   BEGIN RAISE EXCEPTION 'Synthetic account database failure'; END; $$`);
+  await sql.query(`CREATE TRIGGER stage3_user_failure BEFORE INSERT ON users FOR EACH ROW
+   WHEN (NEW.auth_subject='db-failure-customer') EXECUTE FUNCTION stage3_fail_user()`);
+  const token=await new SignJWT({}).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setSubject('db-failure-customer')
+   .setIssuer(issuer).setAudience(audience).setExpirationTime('10m').sign(privateKey);
+  assert.equal((await request('/api/me','alice',undefined,token)).status,500);
+ });
+ await t.test('free event registration is idempotent, returns event IDs and rejects past events',async()=>{
+  const event=(await managerPost('/api/admin/events',{titleEn:'Synthetic free event',titleEs:'Evento de prueba',
+   startsAt:day.plus({days:10}).toISO(),endsAt:day.plus({days:10,hours:1}).toISO(),capacity:1,priceCents:0})).event;
+  await managerPost(`/api/admin/events/${event.id}/publish`,{publish:true});
+  const path=`/api/events/${event.id}/register`;
+  const first=await request(path,'alice',{seats:1});assert.equal(first.status,200);
+  assert.equal((await request(path,'alice',{seats:1})).body.registration.id,first.body.registration.id);
+  assert.equal((await request(path,'bob',{seats:1})).status,409);
+  assert.equal((await request('/api/me/events','alice')).body.registrations[0].event_id,event.id);
+  await sql.query(`UPDATE salon_events SET starts_at=now()-interval '2 hours',ends_at=now()-interval '1 hour' WHERE id=$1`,[event.id]);
+  assert.equal((await request(path,'alice',{seats:1})).status,404);
  });
  await t.test('retired customer programs remain unavailable',async()=>{
   for(const path of ['/api/memberships','/api/me/rewards','/api/admin/memberships']){
