@@ -1,6 +1,9 @@
 """Static v0.3 source assurance. Not a TypeScript compile, integration, mobile build or compliance sign-off."""
 from pathlib import Path
-import re,json
+import argparse,re,json
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output',type=Path,help='Optionally write the current static report to this file.')
+args=parser.parse_args()
 root=Path(__file__).resolve().parents[1]
 checks={}
 def check(label,condition):
@@ -31,18 +34,15 @@ check('Media consent still gated', 'MEDIA_UPLOADS_ENABLED' in (root/'apps/api/sr
 check('Migration runner retained', (root/'scripts/migrate.ts').is_file())
 missing=[]
 for f in list(root.rglob('*.ts'))+list(root.rglob('*.tsx')):
- if 'node_modules' in str(f):continue
+ if {'node_modules','.next','.expo','dist'}.intersection(f.relative_to(root).parts):continue
  for imp in re.findall(r"\bfrom\s*['\"](\.{1,2}/[^'\"]+)['\"]",f.read_text()):
   target=(f.parent/imp).resolve()
   candidates=[target,target.with_suffix('.ts'),target.with_suffix('.tsx'),Path(str(target).removesuffix('.js')+'.ts'),Path(str(target).removesuffix('.js')+'.tsx')]
   if not any(p.is_file() for p in candidates):missing.append((str(f.relative_to(root)),imp))
 check('All relative source imports resolve',not missing)
 report={'project':'Viva Blue Salon v0.3','status':'STATIC_VALIDATION_ONLY', 'checks':checks,'passed':sum(checks.values()),'total':len(checks),'missing_relative_imports':missing,
- 'dependency_install':{'api':'BLOCKED: @aws-sdk/client-s3 not cached and registry unavailable','mobile':'NOT RESOLVED: packages not installed','admin':'NOT RESOLVED: packages not installed'},
- 'package_resolved_build':'NOT RUN - missing npm dependencies','postgresql_migration':'NOT RUN - no database/test instance',
- 'live_provider_and_device':'NOT RUN - no real OIDC, Stripe, S3, devices','official_logo':'Live website-hosted URL used; local owner-approved artwork not bundled',
- 'source_parse':'TypeScript parser result recorded separately in validation output'}
-(root/'docs/BUILD_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
+ 'scope':'Source checks only. Builds, runtime, database and device results must be recorded separately.'}
+if args.output:args.output.write_text(json.dumps(report,indent=2)+'\n')
 print('v0.3 static audit',report['passed'],'/',report['total'],'checks')
 if missing:print('Missing imports:',missing)
 if report['passed']!=report['total']:raise SystemExit(1)

@@ -27,23 +27,66 @@ The official salon logo is linked from https://vivabluesalon.com/images/... (not
 - `db/migrations/001_v01_baseline.sql` initial salon database (from v0.1)
 - `db/migrations/002_v02_salon_experience.sql` additive salon experience tables
 - `db/migrations/003_v03_retire_rewards_memberships.sql` non-destructive retirement safety constraints
-- `scripts/migrate.ts` immutable migration ledger
+- `scripts/migrate.ts` migration command entry point; `apps/api/src/migrations.ts` owns the immutable ledger and API dependencies
 - `scripts/prune_media.ts` abandoned private media cleanup
 - `docs/` design, privacy, finance, QA, change map and deployment gates
 
-## Local developer workflow (after network/dependencies are available)
+## Local developer workflow
 
-1. **Use a separate Viva Blue database. Never connect to Nestease production.** Install Node.js 22+, Docker and an organization-managed OIDC tenant.
-2. `docker compose up -d` starts a PostgreSQL 16 database. The compose file **does not automatically run SQL**.
-3. Configure `MIGRATION_DATABASE_URL` with a privileged **salon migration account**, then run `cd apps/api && npm install && npm run migrate`. Root `scripts/migrate.ts` locates migrations relative to its file. Keep this account separate from the runtime DB account.
-4. Copy `apps/api/.env.example` to `.env`, configure DB, `AUTH_ISSUER`, `AUTH_AUDIENCE`, `AUTH_JWKS_URL`, CORS, then `npm run build && npm test && npm run dev`. Keep `MEDIA_UPLOADS_ENABLED=false` until policy and infrastructure gates pass. No payment-enabled runtime configuration exists in this release.
-5. `cd apps/mobile && npm install && npx expo install --fix && cp .env.example .env && npm run typecheck`. Set public Expo values only. Use an Expo **development build** to verify PKCE and native redirects; do not hardcode secrets. `npm start` runs the app.
-6. `cd apps/admin && npm install && cp .env.example .env.local && npm run typecheck && npm run build && npm run dev`. Configure an **organization** OIDC client, redirect URI `https://admin-host/api/auth/callback`, `VIVABLUE_COOKIE_SECRET` (32+ random characters), and private backend URL. The admin page will not prompt for a manager token.
-7. Managers configure staff qualifications, real shifts, service durations, approved pricing/consultation requirements, salon policies, gallery rights, and closures. Only then enable a service for booking. Never infer public availability from the original website hours alone.
+For the isolated Stage 2 database, local Keycloak sign-in, synthetic salon fixtures and verified browser workflow, follow [the development guide](docs/DEVELOPMENT.md). The manual steps below support an independently configured development identity provider. Choose one setup path: the isolated setup preserves existing manual environment files and refuses to overwrite them.
+
+Use a separate development database. Never point these commands at a live salon or Nestease database. Node **24.22.1** (`nvm use`) and npm **11.9.0** were used for Stage 1; the minimum supported Node version is 22.13.0. Install Docker Compose, and use test OIDC clients for interactive sign-in. Each application has its own npm lockfile; no root dependency installation is required.
+
+From the repository root:
+
+```bash
+npm --prefix apps/api ci
+npm --prefix apps/mobile ci
+npm --prefix apps/admin ci
+# First setup only: preserve existing environment files if already configured.
+cp -n apps/api/.env.example apps/api/.env
+cp -n apps/mobile/.env.example apps/mobile/.env
+cp -n apps/admin/.env.example apps/admin/.env.local
+docker compose up -d postgres
+docker compose exec postgres pg_isready -U vivablue -d vivablue
+```
+
+Edit the local environment files before continuing:
+
+- API: `DATABASE_URL` is the runtime connection; `MIGRATION_DATABASE_URL` is the separately authorized migration connection. The example uses a development-only local account. Set `AUTH_ISSUER`, `AUTH_AUDIENCE`, `AUTH_JWKS_URL` and `CORS_ORIGINS`. Keep `MEDIA_UPLOADS_ENABLED=false`. No payment-enabled runtime configuration exists.
+- Mobile: set `EXPO_PUBLIC_API_URL` to an address reachable from the device. Android emulator usually uses `http://10.0.2.2:4000`; a physical phone needs the computer's LAN address or a development HTTPS endpoint. `localhost` on a phone means that phone. Set a public native OIDC client ID, issuer and audience matching the API; register `vivablue://auth/callback` as the redirect used by `src/session.tsx`. Never place secrets in `EXPO_PUBLIC_*` variables.
+- Admin: set the private backend origin, application origin, organization OIDC client, matching `/api/auth/callback` redirect, and a locally generated `VIVABLUE_COOKIE_SECRET` of at least 32 random characters. Use provider-approved development redirect URLs. A provider integration and API token audience still require end-to-end verification.
+
+Wait for PostgreSQL readiness, then run:
+
+```bash
+npm --prefix apps/api run migrate
+npm --prefix apps/api run typecheck
+npm --prefix apps/api run build
+npm --prefix apps/api test
+npm --prefix apps/mobile run typecheck
+npm --prefix apps/admin run typecheck
+npm --prefix apps/admin run build
+```
+
+API `dev`, `start` and `migrate` automatically load `apps/api/.env` if it exists; explicitly exported variables take precedence. Migration SQL is not automatically applied by Docker or API startup. Do not apply archival `db/001_init.sql` to a migrated database. Use separate migration/runtime accounts outside the disposable local environment.
+
+Run these in separate terminals from the repository root:
+
+```bash
+npm --prefix apps/api run dev
+npm --prefix apps/admin run dev
+npm --prefix apps/mobile start
+```
+
+The Expo command starts Metro for a **development client**; a QR code alone does not install that client. `expo-dev-client` is now included. For Android, install Android Studio, the SDK, JDK 17 and an emulator or USB-debuggable device, then run `npm --prefix apps/mobile run android`. For an iOS simulator, use a Mac with Xcode and CocoaPods, then run `npm --prefix apps/mobile run ios`; a physical iPhone additionally needs Apple signing/provisioning (`npm --prefix apps/mobile run ios -- --device`). Native builds can generate `android/` or `ios/` directories. EAS project/profile configuration is still pending; no EAS build or deployment was performed in Stage 1.
+
+Without a configured identity provider, the public catalog can be exercised but authenticated booking cannot be completed through the mobile UI. Services are deliberately seeded unbookable. Managers must configure approved qualifications, shifts, durations, pricing, consultation requirements and bilingual policies before enabling booking. The automatic regression suite supplies synthetic data and a local test issuer in isolation; it does not create production staff or bypass application authentication. See [Stage 1 verification](docs/STAGE1_STABILIZATION.md) for its commands and remaining limits.
 
 ## Implementation safety and status
 
 - **No app price invented:** services are seeded with `is_bookable=false`, no approved time or price. Peak rules exist but are inactive until manager approval. Events/products start without publicly purchasable inventory; Club memberships are retired.
+  The separate, guarded `seed:dev` command adds a clearly labeled synthetic service in `vivablue_dev` only. It does not change the nine original service categories or establish real salon pricing.
 - **Real slots:** server generates UTC instants based on salon's IANA timezone, stylist shifts, service length + chosen modifiers + buffer, existing booked/pending appointments, closures and time off. PostgreSQL `btree_gist` exclusion constraint guards concurrent overlapping stylist appointments.
 - **Appointments remain requests:** manager confirms. Consultation acknowledgment plus salon-published policy acknowledgment required. Appointment quoted amount is a recorded estimate, not an automatic debit.
 - **Membership payments:** retired in v0.3. No checkout, subscription creation or invoice-to-reward code remains active.
@@ -55,7 +98,9 @@ The official salon logo is linked from https://vivabluesalon.com/images/... (not
 - **Language:** core customer flows use English/Spanish switching; full localization audit, screen readers, consent language, date/numeric formats and right-to-left future support remain pending.
 - **Staffing:** profile images/portfolio-to-stylist assignment, resource-level chairs/bowls, chemical processing stages, walk-ins, late arrivals and multi-service itinerary scheduling remain follow-on product requirements.
 
-## Honest verification report - 2026-11-11
+## Historical verification report - 2026-11-11
+
+These are the original delivery results, retained for provenance. The current build and local integration results are recorded in [Stage 1 verification](docs/STAGE1_STABILIZATION.md); `docs/BUILD_REPORT.json` is the original static-only snapshot.
 
 - `npm install` attempted for **api, mobile and admin**. Online registry was unreachable (DNS). `npm install --offline` failed with `ENOTCACHED` due unavailable dependency tarballs. **NO package-resolved TypeScript builds, `npm test`, Next builds or physical app runs have been completed.**
 - Source-level TypeScript/TSX syntax parse passed for **40 files** using the host's TypeScript parser.

@@ -1,31 +1,40 @@
 # v0.3 QA matrix - scenario-based release testing
 
-**Current status: unexecuted where packages/provider credentials are required.** Never infer success from syntax parsing. Start with isolated test DB, OIDC test issuer and staging S3 bucket.
+**Stage 1/2 status (2026-11-15): builds, local API/database integration, and interactive admin OIDC/PKCE executed.** See [Stage 1](STAGE1_STABILIZATION.md) and [Stage 2](STAGE2_VALIDATION.md). Provider/browser tests do not certify native device behavior or a production release. Never infer runtime success from syntax parsing.
 
 | Area | Scenario / expected result | Status |
 |---|---|---|
-| Dependencies | `npm install` API/mobile/admin from registry | BLOCKED: DNS / cache |
-| Backend TypeScript | `npm run build` with actual packages | NOT RUN |
-| Mobile TypeScript | `npx expo install --fix`, `npm run typecheck` | NOT RUN |
-| Admin TypeScript | `npm run typecheck && npm run build` | NOT RUN |
-| Schema | migrate empty database then restart migrate; checksum match | NOT RUN |
-| Migration conflict | alter applied SQL file; checksum mismatch abort | NOT RUN |
+| Dependencies | Independent npm lockfiles and `npm ci` API/mobile/admin | PASS on Linux; native platform installs pending |
+| Backend TypeScript | `npm run build` and `npm run typecheck` with actual packages | PASS, including test type checking |
+| Mobile TypeScript | `npm run typecheck`, Expo SDK compatibility | PASS; see current Expo diagnostic results in Stage 1 record |
+| Admin TypeScript | `npm run typecheck` and `npm run build` | PASS |
+| Schema | migrate empty database then restart migrate; checksum match | PASS on disposable PostgreSQL 16 |
+| Migration conflict | alter copied applied SQL file; checksum mismatch abort | PASS; repository SQL untouched |
+| Migration concurrency | two first-time migration commands; one ledger/application | PASS |
+| Migration failure | failing copied migration rolls back table and ledger changes | PASS |
 | Baseline | v0.1/v0.2 migrations remain immutable; v0.3 adds retirement migration | STATIC REVIEW |
-| Authentication | PKCE correct redirect/state/nonce; SSO role mapped to DB | NOT RUN |
+| Authentication | Admin PKCE redirect/state/nonce; SSO role mapped to DB | PASS with local Keycloak and actual admin browser flow |
+| Authentication | New customer registration and refresh-token exchange | PASS using separate local public browser test client and actual API; native client flow pending |
+| Authentication | Native `vivablue://auth/callback` and SecureStore persistence | NOT VERIFIED; managed browser blocks native scheme; actual devices required |
+| API authentication | signed JWT, expired/wrong-audience rejection, DB role overrides token role claim | PASS with local JWKS server |
+| Manager hook | manager/admin requests complete; customer/stylist denied | PASS with actual Fastify requests |
 | Admin auth | forged/damaged encrypted cookie => 401, no token-paste UI | STATIC REVIEW ONLY |
-| CSRF | cross-origin POST to admin bridge rejected | NOT RUN |
-| Booking | two simultaneous clients request same stylist/time => one 409 | NOT RUN |
-| Booking | non-bookable unapproved service yields no slots | NOT RUN |
-| Booking | modifier minutes + buffer prevent adjacent collision | NOT RUN |
+| CSRF | cross-origin POST to authenticated admin bridge rejected | PASS in Stage 2 browser suite |
+| Booking | two simultaneous clients request same stylist/time => one 409 | PASS with real API and PostgreSQL |
+| Booking | non-bookable unapproved service yields no slots | PASS |
+| Booking | modifier minutes + buffer prevent adjacent collision | Unit coverage for duration/buffer and busy blocks; full boundary integration pending |
+| Booking | qualified stylist, shifts, confirmation, owner-only access, cancellation review and slot release | PASS through manager/customer API routes |
+| Booking | customer API request, confirmation/cancellation through existing admin UI | PASS with actual local identity provider; synthetic fixtures only |
+| Booking | retry successful booking with same idempotency key | PASS; original appointment returned |
 | Booking | inactive/unknown modifier returns 409 | NOT RUN |
 | Booking | `salon_closures` removes affected slots | NOT RUN |
 | Booking | day beyond 120-day horizon rejected | NOT RUN |
-| Booking | day selection UTC and America/New_York DST spring/fall | NOT RUN |
-| Pricing | enabled peak window adds integer cents; outside window zero | NOT RUN |
-| Pricing | null base remains null, no fabricated price | STATIC CODE CHECK |
+| Booking | day selection UTC and America/New_York DST spring/fall | UTC conversion and spring-gap unit tests PASS; fall/device selection pending |
+| Pricing | enabled peak window adds integer cents; outside window zero | PASS unit tests; approved peak + modifier quote verified through API |
+| Pricing | null base remains null, no fabricated price | PASS unit test |
 | Pricing | multiple overlapping active peaks choose max surcharge | NOT RUN |
-| Consent | no published policies => booking blocked | STATIC CODE CHECK |
-| Consent | consultation type requires explicit acknowledgment | STATIC CODE CHECK |
+| Consent | no published policies or no policy acknowledgment => booking blocked | PASS integration |
+| Consent | consultation type requires explicit acknowledgment | PASS integration |
 | Favorites | only published rights-cleared looks can be saved | NOT RUN |
 | Media | signed PUT expires/HEAD metadata verification | NOT RUN |
 | Media | upload requires affirmative image/consent checkbox | STATIC CODE CHECK |
@@ -47,12 +56,18 @@
 ## Minimum test runner commands
 
 ```bash
-cd apps/api && npm install && npm run build && npm test
-cd apps/mobile && npm install && npx expo install --fix && npm run typecheck
-cd apps/admin && npm install && npm run typecheck && npm run build
-cd <repo-root> && python scripts/audit_v03.py
+npm --prefix apps/api ci
+npm --prefix apps/api run typecheck
+npm --prefix apps/api run build
+npm --prefix apps/api test
+npm --prefix apps/mobile ci
+npm --prefix apps/mobile run typecheck
+npm --prefix apps/admin ci
+npm --prefix apps/admin run typecheck
+npm --prefix apps/admin run build
+python3 scripts/audit_v03.py
 ```
 
-Proof for this delivery is included in `docs/BUILD_REPORT.json`; no live credentials or real salon data used.
+Run from the repository root. For database tests, use `TEST_DATABASE_URL` with `npm --prefix apps/api run test:integration` as described in [Stage 1 verification](STAGE1_STABILIZATION.md). `docs/BUILD_REPORT.json` is the historical static-only snapshot. The static checker no longer overwrites it or asserts unexecuted build results; `--output <path>` optionally saves the current static result. No live credentials or real salon data were used.
 
 

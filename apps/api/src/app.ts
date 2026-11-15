@@ -22,6 +22,10 @@ async function audit(userId:string,action:string,id:string,details:unknown={}){
 }
 type ServiceRow={id:string,slug:string,name_en:string,name_es:string,duration_minutes:number|null,
  starting_price_cents:number|null,requires_consultation:boolean,is_bookable:boolean,buffer_minutes:number};
+type AvailableStylist={id:string,salon_id:string,timezone:string};
+type AvailabilityResult=
+ | {slots:string[],reason:string,service?:never,stylist?:never,selected?:never}
+ | {slots:string[],reason:null,service:ServiceRow,stylist:AvailableStylist,selected:Modifier[]};
 export async function buildApp(config:Config){
  const app=Fastify({logger:{redact:['req.headers.authorization','req.body.password','req.body.token']},bodyLimit:128*1024,trustProxy:false});
  await app.register(cors,{origin:config.CORS_ORIGINS.split(',').map(x=>x.trim())});
@@ -58,12 +62,12 @@ export async function buildApp(config:Config){
   return (await pool.query<PeakRule>(`SELECT weekday,start_local::text,end_local::text,surcharge_bps
     FROM peak_pricing_rules WHERE salon_id=$1 AND is_active=true AND approved_by IS NOT NULL`,[salonId])).rows;
  }
- async function slotsFor(serviceId:string,stylistId:string,date:string,modifierIds:string[]=[]){
+ async function slotsFor(serviceId:string,stylistId:string,date:string,modifierIds:string[]=[]):Promise<AvailabilityResult>{
   const s=await queryOne<ServiceRow>('SELECT * FROM services WHERE id=$1 AND is_visible=true',[serviceId]);
   if(!s)throw err('Service unavailable',404);
   if(!s.is_bookable||!s.duration_minutes)return {slots:[],reason:'Service requires salon approval before online booking.'};
   const selected=await loadModifiers(serviceId,modifierIds);
-  const st=await queryOne<{id:string,salon_id:string,timezone:string}>(`SELECT st.id,st.salon_id,sa.timezone FROM stylists st
+  const st=await queryOne<AvailableStylist>(`SELECT st.id,st.salon_id,sa.timezone FROM stylists st
    JOIN salons sa ON sa.id=st.salon_id AND sa.is_active=true
    JOIN stylist_services ss ON ss.stylist_id=st.id AND ss.service_id=$2
    WHERE st.id=$1 AND st.is_active=true`,[stylistId,serviceId]);
@@ -105,14 +109,14 @@ export async function buildApp(config:Config){
    const date=start.setZone(st.timezone).toISODate()!;
    const avail=await slotsFor(v.serviceId,v.stylistId,date,v.modifierIds);
    const normalized=start.toISO({suppressMilliseconds:true})!;
-   if(!avail.slots.includes(normalized))throw err('Selected slot is unavailable. Refresh and choose another.',409);
-   if(avail.service!.requires_consultation&&!v.consultationAck)throw err('Consultation acknowledgement required',400);
-   const policy=await queryOne<{effective_at:string}>(`SELECT effective_at FROM salon_policies WHERE salon_id=$1 AND approved_by IS NOT NULL AND effective_at<=now()`,[avail.stylist!.salon_id]);
+   if(avail.reason!==null||!avail.slots.includes(normalized))throw err('Selected slot is unavailable. Refresh and choose another.',409);
+   if(avail.service.requires_consultation&&!v.consultationAck)throw err('Consultation acknowledgement required',400);
+   const policy=await queryOne<{effective_at:string}>(`SELECT effective_at FROM salon_policies WHERE salon_id=$1 AND approved_by IS NOT NULL AND effective_at<=now()`,[avail.stylist.salon_id]);
    if(!policy||!v.policyAccepted)throw err('Approved salon policy acknowledgement is required',409);
-   const stylist=avail.stylist!;
+   const stylist=avail.stylist;
    const ruleSet=await peakRules(stylist.salon_id);
-   const quote=quoteSalonService({baseMinutes:avail.service!.duration_minutes!,bufferMinutes:avail.service!.buffer_minutes,
-     basePriceCents:avail.service!.starting_price_cents,selected:avail.selected!,startsAt:normalized,
+   const quote=quoteSalonService({baseMinutes:avail.service.duration_minutes!,bufferMinutes:avail.service.buffer_minutes,
+     basePriceCents:avail.service.starting_price_cents,selected:avail.selected,startsAt:normalized,
      timezone:stylist.timezone,peakRules:ruleSet});
    const end=start.plus({minutes:quote.occupiedMinutes});
    try{

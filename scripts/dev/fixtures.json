@@ -1,0 +1,14 @@
+{
+  "realm": "vivablue-dev",
+  "audience": "https://api.vivabluesalon.example",
+  "users": [
+    {"id":"20000000-0000-4000-8000-000000000001","username":"dev-manager","role":"manager","name":"Development Manager"},
+    {"id":"20000000-0000-4000-8000-000000000002","username":"dev-customer","role":"customer","name":"Development Customer"},
+    {"id":"20000000-0000-4000-8000-000000000003","username":"dev-stylist","role":"stylist","name":"Development Stylist"}
+  ],
+  "serviceId":"20000000-0000-4000-8000-000000000010",
+  "stylistId":"20000000-0000-4000-8000-000000000011",
+  "modifierId":"20000000-0000-4000-8000-000000000012",
+  "productId":"20000000-0000-4000-8000-000000000013",
+  "eventId":"20000000-0000-4000-8000-000000000014"
+}

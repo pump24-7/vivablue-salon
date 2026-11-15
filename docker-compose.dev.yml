@@ -1,0 +1,18 @@
+# Isolated development database; never points at the ordinary application volume.
+name: vivablue-development
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: vivablue_dev
+      POSTGRES_USER: vivablue_dev_owner
+      POSTGRES_PASSWORD: ${VIVABLUE_DEV_DB_PASSWORD:?Run node scripts/dev/setup.mjs first}
+    ports: ["127.0.0.1:55434:5432"]
+    volumes: ["devdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vivablue_dev_owner -d vivablue_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  devdata:

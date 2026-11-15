@@ -1,0 +1,364 @@
+{
+  "stage": "2",
+  "status": "Local stack verified; native device installation pending",
+  "source_base": "d5371a4f38a27aa1e65811b4769278575685dfb4",
+  "commands": [
+    {
+      "id": "dev-setup",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/setup.mjs"
+      ],
+      "started_utc": "2026-11-15T05:21:04.830820+00:00",
+      "elapsed_seconds": 0.3,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/dev-setup.log"
+    },
+    {
+      "id": "admin-types",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T05:21:18.722229+00:00",
+      "elapsed_seconds": 9.88,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/admin-types.log"
+    },
+    {
+      "id": "api-types",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T05:21:18.804820+00:00",
+      "elapsed_seconds": 10.63,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/api-types.log"
+    },
+    {
+      "id": "development-database",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "--env-file",
+        "work/dev/database.env",
+        "up",
+        "-d",
+        "--wait"
+      ],
+      "started_utc": "2026-11-15T05:21:18.900991+00:00",
+      "elapsed_seconds": 18.46,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/development-database.log"
+    },
+    {
+      "id": "migrate-dev",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "migrate"
+      ],
+      "started_utc": "2026-11-15T05:22:38.204386+00:00",
+      "elapsed_seconds": 1.43,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/migrate-dev.log"
+    },
+    {
+      "id": "seed-dev",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "seed:dev"
+      ],
+      "started_utc": "2026-11-15T05:23:40.921539+00:00",
+      "elapsed_seconds": 0.6,
+      "exit_code": 1,
+      "log": "/workspace/work/stage2/evidence/seed-dev.log"
+    },
+    {
+      "id": "seed-dev-fixed",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "seed:dev"
+      ],
+      "started_utc": "2026-11-15T05:24:17.037375+00:00",
+      "elapsed_seconds": 1.1,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/seed-dev-fixed.log"
+    },
+    {
+      "id": "running-stack-check",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-15T05:29:22.775335+00:00",
+      "elapsed_seconds": 8.42,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/running-stack-check.log"
+    },
+    {
+      "id": "browser-oidc-booking",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "/workspace/work/stage2/browser_flow.py"
+      ],
+      "started_utc": "2026-11-15T05:31:33.906141+00:00",
+      "elapsed_seconds": 36.58,
+      "exit_code": 1,
+      "log": "/workspace/work/stage2/evidence/browser-oidc-booking.log"
+    },
+    {
+      "id": "seed-idempotence",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "seed:dev"
+      ],
+      "started_utc": "2026-11-15T05:32:14.961814+00:00",
+      "elapsed_seconds": 0.55,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/seed-idempotence.log"
+    },
+    {
+      "id": "dev-setup-repeat",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/setup.mjs"
+      ],
+      "started_utc": "2026-11-15T05:35:05.367787+00:00",
+      "elapsed_seconds": 0.04,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/dev-setup-repeat.log"
+    },
+    {
+      "id": "browser-oidc-booking-fixed",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "/workspace/work/stage2/browser_flow.py"
+      ],
+      "started_utc": "2026-11-15T05:35:38.457056+00:00",
+      "elapsed_seconds": 38.3,
+      "exit_code": 1,
+      "log": "/workspace/work/stage2/evidence/browser-oidc-booking-fixed.log"
+    },
+    {
+      "id": "browser-oidc-booking-loopback",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "/workspace/work/stage2/browser_flow.py"
+      ],
+      "started_utc": "2026-11-15T05:38:29.599642+00:00",
+      "elapsed_seconds": 7.54,
+      "exit_code": 1,
+      "log": "/workspace/work/stage2/evidence/browser-oidc-booking-loopback.log"
+    },
+    {
+      "id": "browser-oidc-booking-refresh",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "/workspace/work/stage2/browser_flow.py"
+      ],
+      "started_utc": "2026-11-15T05:40:14.312418+00:00",
+      "elapsed_seconds": 12.24,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/browser-oidc-booking-refresh.log"
+    },
+    {
+      "id": "api-unit-tests",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "started_utc": "2026-11-15T05:41:11.927453+00:00",
+      "elapsed_seconds": 3.27,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/api-unit-tests.log"
+    },
+    {
+      "id": "api-types-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T05:41:11.913612+00:00",
+      "elapsed_seconds": 7.24,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/api-types-final.log"
+    },
+    {
+      "id": "admin-production-build",
+      "cwd": "/workspace/work/stage2/admin-build",
+      "command": [
+        "env",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-15T05:41:11.949414+00:00",
+      "elapsed_seconds": 15.29,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/admin-production-build.log"
+    },
+    {
+      "id": "browser-repeatable-script",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "scripts/dev/verify-browser.py"
+      ],
+      "started_utc": "2026-11-15T05:42:37.808764+00:00",
+      "elapsed_seconds": 10.87,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/browser-repeatable-script.log"
+    },
+    {
+      "id": "final-stack-check",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-15T05:52:16.434518+00:00",
+      "elapsed_seconds": 0.12,
+      "exit_code": 1,
+      "log": "/workspace/work/stage2/evidence/final-stack-check.log"
+    },
+    {
+      "id": "static-v03",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "scripts/audit_v03.py",
+        "--output",
+        "/workspace/work/stage2/evidence/static-v03.json"
+      ],
+      "started_utc": "2026-11-15T05:52:16.951026+00:00",
+      "elapsed_seconds": 1.82,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/static-v03.log"
+    },
+    {
+      "id": "final-stack-ready",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-15T05:53:16.535395+00:00",
+      "elapsed_seconds": 0.77,
+      "exit_code": 0,
+      "log": "/workspace/work/stage2/evidence/final-stack-ready.log"
+    }
+  ],
+  "browser_checks": {
+    "passed": [
+      "Admin organization sign-in: authorization code, PKCE, nonce/state, encrypted HttpOnly session and authenticated dashboard refresh",
+      "Admin bridge rejects cross-origin mutation; callback rejects invalid state",
+      "Separate public browser test client completes PKCE exchange; real JWT authenticates customer and denies manager access",
+      "Public test client token endpoint rejects an incorrect PKCE verifier",
+      "Development provider refresh token returns an API-valid access token",
+      "Customer submits a real development appointment with modifier, consent and server price",
+      "Existing admin appointment screen confirms the request; customer API sees confirmed status",
+      "Customer cancellation request and admin screen cancellation complete through the existing API bridge",
+      "New account registration at development provider creates a customer record without staff privileges"
+    ],
+    "native_device_tested": false,
+    "native_redirect_verified": false,
+    "public_client": "vivablue-browser-test",
+    "tls": "Application/backend verify a local development CA; browser trusts only the generated certificate public-key pin."
+  },
+  "live_metro": {
+    "android": {
+      "platform": "android",
+      "app": "Viva Blue Salon",
+      "bundle_bytes": 6383594,
+      "status": 200,
+      "development_client": true
+    },
+    "ios": {
+      "platform": "ios",
+      "app": "Viva Blue Salon",
+      "bundle_bytes": 6388754,
+      "status": 200,
+      "development_client": true
+    }
+  },
+  "seed_safety_guards": [
+    {
+      "case": "production-mode",
+      "rejected": true
+    },
+    {
+      "case": "remote-host",
+      "rejected": true
+    },
+    {
+      "case": "wrong-database",
+      "rejected": true
+    },
+    {
+      "case": "host-override",
+      "rejected": true
+    }
+  ],
+  "other_verified_checks": [
+    "Setup refuses existing manual environment files",
+    "Generated credentials and unchanged env timestamps retained on repeat setup",
+    "Runtime role cannot create schema objects or insert historical program records",
+    "Original nine services remain unbookable",
+    "Metro process-group shutdown and restart",
+    "Final provider template matches active local configuration",
+    "Screens, brand assets, business logic and immutable SQL unchanged from Stage 1"
+  ],
+  "services": {
+    "admin": "http://localhost:3000",
+    "api": "http://127.0.0.1:4000",
+    "metro": "http://localhost:8081",
+    "issuer": "https://localhost:8443/realms/vivablue-dev",
+    "postgres": "127.0.0.1:55434/vivablue_dev"
+  },
+  "limitations": [
+    "Addresses are inside the cloud workspace, not phone-accessible endpoints",
+    "Native URL scheme blocked by managed browser; separate public browser test client used",
+    "No native Android/iOS build, signing or device installation",
+    "No production services, payments, commit, push, PR or deployment"
+  ],
+  "evidence_note": "Log paths identify this execution workspace. Private credentials and server authentication logs are not included."
+}

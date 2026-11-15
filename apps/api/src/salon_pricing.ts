@@ -16,6 +16,6 @@ export function quoteSalonService(x:{baseMinutes:number,bufferMinutes:number,bas
  const peakCents=subtotal===null?null:Math.round(subtotal*bps/10000);
  return {serviceMinutes:x.baseMinutes+extraMinutes,occupiedMinutes:x.baseMinutes+extraMinutes+x.bufferMinutes,
    baseCents:base,modifierCents:addonCents,peakBps:bps,peakCents,
-   totalCents:subtotal===null?null:subtotal+peakCents,timezone:x.timezone,
+   totalCents:subtotal===null||peakCents===null?null:subtotal+peakCents,timezone:x.timezone,
    disclaimer:'Estimate only until salon confirms consultation, services and charges.'};
 }

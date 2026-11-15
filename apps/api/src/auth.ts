@@ -21,6 +21,6 @@ export function authentication(config:Config){
   }catch{reply.code(401).send({error:'Invalid or expired session'});}
  }
 }
-export function managerOnly(req:FastifyRequest,reply:FastifyReply){
- if(req.identity?.role!=='manager'&&req.identity?.role!=='admin')reply.code(403).send({error:'Manager permissions required'});
+export async function managerOnly(req:FastifyRequest,reply:FastifyReply){
+ if(req.identity?.role!=='manager'&&req.identity?.role!=='admin')return reply.code(403).send({error:'Manager permissions required'});
 }

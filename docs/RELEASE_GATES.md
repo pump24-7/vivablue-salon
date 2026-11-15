@@ -5,8 +5,9 @@
 ## Critical gates
 
 - [ ] Salon owner authorizes name, branding, web photos, imagery, product features and app identifiers.
-- [ ] Install dependencies from registry and commit lockfiles after validation.
-- [ ] Package-resolved TypeScript API/mobile/admin builds and actual Expo 54 compatibility check.
+- [x] Install dependencies from registry; generate and verify per-application lockfiles with `npm ci` (Stage 1, local changes only).
+- [ ] Complete dependency vulnerability remediation and review before release; current mobile/admin audit findings remain open.
+- [x] Package-resolved TypeScript API/mobile/admin checks, API/Next builds and Expo 54 compatibility check (Stage 1).
 - [ ] Create isolated managed PostgreSQL and run migrations on staging, test backups and restore; do not touch Nestease DB.
 - [ ] Run transaction/concurrency tests for overlap exclusion and event seat capacity; add time-off/station resources and multi-service bookings.
 - [ ] Configure organization OIDC/JWKS/PKCE with access token audience, admin session expiry, logout and revocation; check every permission boundary.
@@ -31,4 +32,4 @@
 
 ## Current QA result
 
-No live OIDC, Stripe, PostgreSQL or AWS test tenant available in this execution environment. Registry DNS unavailable, and no package cache for dependencies; package-resolved builds are blocked. Static syntax parsing and source checks are documented in `BUILD_REPORT.json`.
+The original static-only delivery report remains in `BUILD_REPORT.json`. Stage 1 installs/builds and local PostgreSQL/JWT appointment tests are recorded in [STAGE1_STABILIZATION.md](STAGE1_STABILIZATION.md). Those results replace the old dependency-blocked status. Production services were not accessed; interactive provider setup, native Android/iOS builds, actual-device runs, remaining security findings and operational release gates remain open. No commit, push, PR or deployment was performed.
