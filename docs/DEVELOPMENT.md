@@ -1,6 +1,6 @@
 # Viva Blue Salon development environment
 
-Stage 2 provides a local PostgreSQL database, actual Fastify API, actual Next.js admin, Expo development server and a local Keycloak identity provider. Stage 3 extends the existing customer screens and adds profile editing, shared language, server booking quotes and an in-app appointment inbox. Branding and migrations 001–003 are retained; migration 004 adds the inbox. See [Stage 3 results](STAGE3_VALIDATION.md) and [Stage 2 results](STAGE2_VALIDATION.md) for verified behavior and remaining device requirements.
+Stage 2 provides a local PostgreSQL database, actual Fastify API, actual Next.js admin, Expo development server and a local Keycloak identity provider. Stage 3 extends the existing customer screens and adds profile editing, shared language, server booking quotes and an in-app appointment inbox. Branding and migrations 001–003 are retained; migration 004 adds the inbox. Stage 4 completes the local management controls and adds migration 005 for scheduling reasons and image review evidence. See [Stage 4 results](STAGE4_VALIDATION.md) for actual checks and remaining provider/owner gates. See [Stage 3 results](STAGE3_VALIDATION.md) and [Stage 2 results](STAGE2_VALIDATION.md) for verified behavior and remaining device requirements.
 
 The bootstrap configuration binds to loopback. URLs printed here refer to the computer running these commands; a phone cannot reach a cloud computer through its own `localhost`. No physical Android/iPhone build or native callback has been verified yet.
 
@@ -156,3 +156,11 @@ The remaining device acceptance test is: launch → sign in/create account → s
 ## Upgrade an existing Stage 2 development checkout
 
 Install the new mobile test dependencies with `npm --prefix apps/mobile ci`, apply migration 004 with `npm --prefix apps/api run migrate`, then run `npm --prefix apps/api run seed:dev` to grant the existing isolated runtime role access to its inbox table. Existing data and generated credentials are retained. Never use the development seeder with an operational database. The complete regression command list and device acceptance steps are in [Stage 3 validation](STAGE3_VALIDATION.md).
+
+## Upgrade an existing Stage 3 development checkout
+
+Apply additive migration 005 with `npm --prefix apps/api run migrate` before starting the updated API. Existing table privileges cover the added columns; no new grants, package installations or lockfile updates are needed for this upgrade. Start the existing API/admin wrappers once each. See [Stage 4 validation](STAGE4_VALIDATION.md) for staff qualification/shift/time-off, inventory, event, image rights, audit and permission workflows.
+
+With the local stack running and Python Playwright/Chromium installed, run `python scripts/dev/verify-management.py`. It uses only loopback API/SSO addresses, creates uniquely named synthetic records, retains audit history and writes ignored evidence in `work/dev/verification`. Follow with the existing customer browser suite. Respect the API's normal rate window when repeatedly running suites. No rate limits or authorization checks are bypassed.
+
+`dev-manager` can operate the salon but cannot grant staff roles. Positive administrator permissions are covered by signed-JWT database integration tests. Initial administrator provisioning requires an authorized operator mapping an existing, verified organization subject to the database's `admin` role; do not infer that role from a token claim, expose a public bootstrap endpoint or change actual owner accounts for testing. Later staff access changes can be made by an administrator in **Audit & access**.

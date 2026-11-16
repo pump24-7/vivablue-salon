@@ -20,8 +20,8 @@
 | Authentication | Native `vivablue://auth/callback` and SecureStore persistence | NOT VERIFIED; managed browser blocks native scheme; actual devices required |
 | API authentication | signed JWT, expired/wrong-audience rejection, DB role overrides token role claim | PASS with local JWKS server |
 | Manager hook | manager/admin requests complete; customer/stylist denied | PASS with actual Fastify requests |
-| Admin auth | forged/damaged encrypted cookie => 401, no token-paste UI | STATIC REVIEW ONLY |
-| CSRF | cross-origin POST to authenticated admin bridge rejected | PASS in Stage 2 browser suite |
+| Admin auth | forged/damaged/expired encrypted cookie; no token-paste UI | PASS actual crypto tests; expired private access enforced server-side |
+| CSRF | cross-origin POST/PATCH/DELETE and logout rejected | PASS real browser in Stage 4 |
 | Booking | two simultaneous clients request same stylist/time => one 409 | PASS with real API and PostgreSQL |
 | Booking | non-bookable unapproved service yields no slots | PASS |
 | Booking | modifier minutes + buffer prevent adjacent collision | Unit coverage for duration/buffer and busy blocks; full boundary integration pending |
@@ -87,3 +87,21 @@ Run from the repository root. For database tests, use `TEST_DATABASE_URL` with `
 | Events | registration event ID, repeat request, capacity, past-event guard | PASS API/database and event component |
 | Physical phone | install, native return, real SecureStore, foreground and expiry | NOT VERIFIED |
 | External notifications | push/email/SMS/reminder delivery | NOT IMPLEMENTED; in-app inbox only |
+
+## Stage 4 management verification
+
+See [Stage 4 validation](STAGE4_VALIDATION.md) and its command manifest. Final runs pass 29 API/database results (27 scenarios plus two parents), 13 API unit results, 3 admin security tests, 19 mobile component tests, 13 customer/provider browser checks and 10 management browser checks.
+
+| Area | Scenario | Result |
+|---|---|---|
+| Staff | explicit qualifications, editable shifts/time off, linked staff profile | PASS API/database and browser |
+| Scheduling | reject conflicting shifts/absences/closures/qualification removal; simultaneous booking versus closure | PASS API/database |
+| Catalog | edit hidden/public services, buffers, price, consultation and modifiers | PASS API; service forms also browser-tested |
+| Inventory | concurrent stale stock rejection, automatic zero-stock hiding, audit evidence | PASS API/database; edit/hide browser-tested |
+| Images | rights reference required, replacement withdraws publication and favorites | PASS API/database; private draft/approval gates browser-tested |
+| Private media | queue/reject, disabled storage/approval guard | PASS API; real S3 read/write/approval NOT VERIFIED |
+| Events | edit/capacity guard/cancel retaining registrations | PASS API/database and basic management browser flow |
+| Access | customer/stylist denied; manager cannot elevate; admin grants/revokes; self-demotion blocked | PASS API/database; manager denial also real SSO/browser |
+| Audit | rollback mutation on audit failure, read-only dashboard trail | PASS API/database and browser display |
+| Admin session | tampering/expiry, provider lifetime, foreign-origin logout/PATCH/DELETE | PASS crypto and browser tests |
+| Visual | desktop team controls, narrow audit layout without page overflow | Limited browser verification; hosted logo HTTP 404, approved replacement pending |

@@ -6,6 +6,8 @@
 
 **State: v0.3 source deliverable / NOT production-certified.** The application is a non-destructive fork of a previous Nestease-to-salon **v0.1 source conversion**, supplied in `Viva_Blue_Salon_Converted_Source_v0.1.zip`. It is not connected to actual salon credentials, salon staff records, booking calendars, payment accounts or live customer data. Do not deploy to clients or accept live payment without completing the gates below.
 
+**Stage 4 development update:** Editable staff schedules/time off, explicit qualifications, service/modifier/product/event management, image-rights review, appointment details, audit history and administrator-only role controls are implemented and locally verified. See [Stage 4 results](docs/STAGE4_VALIDATION.md) and [development instructions](docs/DEVELOPMENT.md). The existing hosted logo returned HTTP 404 during verification; an approved bundled asset remains a release gate.
+
 ## What's included
 
 - **Mobile (Expo/React Native):** official-site logo reference, bright-blue/lilac design, bilingual home, services, lookbook and favorites, My Viva appointments, events, products, time/artist selection and consent. Rewards and Club are removed.

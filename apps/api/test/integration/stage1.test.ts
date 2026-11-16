@@ -284,7 +284,7 @@ test('Customer workflow, migrations, authorization and appointment concurrency',
   const id=created.look.id,path='/api/me/favorites/'+id;
   assert.equal((await request(path,'alice',undefined,undefined,'PUT')).status,404);
   assert.equal((await request(`/api/admin/lookbook/${id}/review`,'manager',{rightsConfirmed:false,publish:true})).status,409);
-  await managerPost(`/api/admin/lookbook/${id}/review`,{rightsConfirmed:true,publish:true});
+  await managerPost(`/api/admin/lookbook/${id}/review`,{rightsConfirmed:true,publish:true,rightsNote:"Synthetic fixture license for this test only"});
   for(let n=0;n<2;n++)assert.equal((await request(path,'alice',undefined,undefined,'PUT')).status,200);
   assert.equal((await request('/api/me/favorites','alice')).body.looks.length,1);
   assert.equal((await request('/api/me/favorites','bob')).body.looks.length,0);

@@ -1,0 +1,534 @@
+{
+  "stage": 4,
+  "base_commit": "6d5f1c8cf638bc51b1e3a69b6846bfe67720b66b",
+  "verification_date": "2026-11-16 UTC",
+  "commands": [
+    {
+      "id": "readiness-initial",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-16T03:54:44.938672+00:00",
+      "elapsed_seconds": 0.08,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/readiness-initial.log"
+    },
+    {
+      "id": "api-migrate-dev",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "migrate"
+      ],
+      "started_utc": "2026-11-16T03:54:54.184716+00:00",
+      "elapsed_seconds": 1.23,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-migrate-dev.log"
+    },
+    {
+      "id": "api-unit",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "test"
+      ],
+      "started_utc": "2026-11-16T03:56:50.643115+00:00",
+      "elapsed_seconds": 2.88,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-unit.log"
+    },
+    {
+      "id": "api-typecheck",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-16T03:56:50.633480+00:00",
+      "elapsed_seconds": 5.35,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-typecheck.log"
+    },
+    {
+      "id": "api-integration",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "test:integration"
+      ],
+      "started_utc": "2026-11-16T03:56:50.589302+00:00",
+      "elapsed_seconds": 8.8,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/api-integration.log"
+    },
+    {
+      "id": "admin-security",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/admin",
+        "test"
+      ],
+      "started_utc": "2026-11-16T03:58:22.551020+00:00",
+      "elapsed_seconds": 1.2,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-security.log"
+    },
+    {
+      "id": "api-integration-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "test:integration"
+      ],
+      "started_utc": "2026-11-16T03:58:22.581474+00:00",
+      "elapsed_seconds": 12.16,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-integration-final.log"
+    },
+    {
+      "id": "customer-browser-regression",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-browser.py"
+      ],
+      "started_utc": "2026-11-16T03:58:22.513564+00:00",
+      "elapsed_seconds": 23.46,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/customer-browser-regression.log"
+    },
+    {
+      "id": "api-build-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-16T04:00:22.887520+00:00",
+      "elapsed_seconds": 11.71,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-build-final.log"
+    },
+    {
+      "id": "mobile-typecheck",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/mobile",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-16T04:00:22.793403+00:00",
+      "elapsed_seconds": 12.32,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/mobile-typecheck.log"
+    },
+    {
+      "id": "admin-typecheck",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/admin",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-16T04:00:23.083575+00:00",
+      "elapsed_seconds": 12.62,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-typecheck.log"
+    },
+    {
+      "id": "management-browser",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-management.py"
+      ],
+      "started_utc": "2026-11-16T03:59:59.523966+00:00",
+      "elapsed_seconds": 37.32,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/management-browser.log"
+    },
+    {
+      "id": "admin-build",
+      "cwd": "/workspace/work/stage4/admin-build",
+      "command": [
+        "env",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-16T04:00:21.463696+00:00",
+      "elapsed_seconds": 23.03,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-build.log"
+    },
+    {
+      "id": "management-browser-2",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-management.py"
+      ],
+      "started_utc": "2026-11-16T04:01:08.945584+00:00",
+      "elapsed_seconds": 46.1,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/management-browser-2.log"
+    },
+    {
+      "id": "readiness-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-16T04:02:32.812548+00:00",
+      "elapsed_seconds": 0.53,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/readiness-final.log"
+    },
+    {
+      "id": "v03-static",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/audit_v03.py"
+      ],
+      "started_utc": "2026-11-16T04:02:32.745523+00:00",
+      "elapsed_seconds": 2.04,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/v03-static.log"
+    },
+    {
+      "id": "admin-typecheck-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/admin",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-16T04:02:32.681623+00:00",
+      "elapsed_seconds": 5.18,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-typecheck-final.log"
+    },
+    {
+      "id": "management-browser-3",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-management.py"
+      ],
+      "started_utc": "2026-11-16T04:03:14.300640+00:00",
+      "elapsed_seconds": 18.35,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/management-browser-3.log"
+    },
+    {
+      "id": "management-browser-4",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-management.py"
+      ],
+      "started_utc": "2026-11-16T04:04:36.646282+00:00",
+      "elapsed_seconds": 30.44,
+      "exit_code": 1,
+      "log": "/workspace/work/stage4/evidence/management-browser-4.log"
+    },
+    {
+      "id": "mobile-regression",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/mobile",
+        "test"
+      ],
+      "started_utc": "2026-11-16T04:05:19.370811+00:00",
+      "elapsed_seconds": 4.17,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/mobile-regression.log"
+    },
+    {
+      "id": "api-integration-workspace",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "test:integration"
+      ],
+      "started_utc": "2026-11-16T04:05:56.483145+00:00",
+      "elapsed_seconds": 12.65,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-integration-workspace.log"
+    },
+    {
+      "id": "management-browser-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-management.py"
+      ],
+      "started_utc": "2026-11-16T04:05:55.046311+00:00",
+      "elapsed_seconds": 18.44,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/management-browser-final.log"
+    },
+    {
+      "id": "api-compile-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-16T04:06:33.096768+00:00",
+      "elapsed_seconds": 7.92,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-compile-final.log"
+    },
+    {
+      "id": "api-types-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-16T04:06:33.097937+00:00",
+      "elapsed_seconds": 8.15,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/api-types-final.log"
+    },
+    {
+      "id": "admin-build-final",
+      "cwd": "/workspace/work/stage4/admin-build",
+      "command": [
+        "env",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-16T04:06:31.858980+00:00",
+      "elapsed_seconds": 15.12,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-build-final.log"
+    },
+    {
+      "id": "official-logo-fetch",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "curl",
+        "--head",
+        "--location",
+        "--max-time",
+        "20",
+        "--silent",
+        "--show-error",
+        "https://vivabluesalon.com/images/33c922f60b7167724cbc786ad2dfe8c4.png"
+      ],
+      "started_utc": "2026-11-16T04:07:18.305812+00:00",
+      "elapsed_seconds": 0.34,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/official-logo-fetch.log"
+    },
+    {
+      "id": "readiness-complete",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "scripts/dev/check.mjs"
+      ],
+      "started_utc": "2026-11-16T04:07:18.294911+00:00",
+      "elapsed_seconds": 0.42,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/readiness-complete.log"
+    },
+    {
+      "id": "customer-browser-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python",
+        "scripts/dev/verify-browser.py"
+      ],
+      "started_utc": "2026-11-16T04:07:44.001006+00:00",
+      "elapsed_seconds": 10.74,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/customer-browser-final.log"
+    },
+    {
+      "id": "admin-build-review",
+      "cwd": "/workspace/work/stage4/admin-build",
+      "command": [
+        "env",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-16T04:12:04.623641+00:00",
+      "elapsed_seconds": 10.33,
+      "exit_code": 0,
+      "log": "/workspace/work/stage4/evidence/admin-build-review.log"
+    }
+  ],
+  "additional_executions": [
+    {
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/api",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "note": "Initial implementation compilation before recorded regression runner."
+    },
+    {
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/admin",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "note": "Initial management component type check."
+    },
+    {
+      "command": [
+        "npm",
+        "--prefix",
+        "apps/admin",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 2,
+      "note": "During select-label correction: TS17008 unclosed label in role picker. Corrected; final builds pass."
+    },
+    {
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "start",
+        "vivablue-development-postgres-1"
+      ],
+      "exit_code": 0,
+      "note": "Restarted retained isolated development PostgreSQL container; no new volume, truncation or destructive migration."
+    },
+    {
+      "command": [
+        "env",
+        "VIVABLUE_KEYCLOAK_BIN=/workspace/work/stage2/tools/keycloak-26.8.2/bin/kc.sh",
+        "node",
+        "scripts/dev/run.mjs",
+        "auth"
+      ],
+      "note": "Long-running local service; retained realm import skipped, verified HTTPS startup."
+    },
+    {
+      "command": [
+        "node",
+        "scripts/dev/run.mjs",
+        "api"
+      ],
+      "note": "Long-running existing local application wrapper; verified by readiness check."
+    },
+    {
+      "command": [
+        "node",
+        "scripts/dev/run.mjs",
+        "admin"
+      ],
+      "note": "Long-running existing local application wrapper; verified by readiness check."
+    },
+    {
+      "command": [
+        "node",
+        "scripts/dev/run.mjs",
+        "mobile"
+      ],
+      "note": "Long-running existing local application wrapper; verified by readiness check."
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "note": "Whitespace review before publication."
+    }
+  ],
+  "environment": {
+    "node": "24.22.1",
+    "npm": "11.9.0",
+    "postgresql": "16",
+    "next": "15.5.29",
+    "test_database": "Existing loopback vivablue_test_stage3; new isolated schemas each run; credential values omitted",
+    "dependencies": "Existing installed per-app lockfiles reused; no package upgrades or new dependencies",
+    "build_copy": "Only tracked application source/config and tests copied; node_modules symlink; no private environment files"
+  },
+  "notes": [
+    "Failures are retained rather than overwritten; later final entries supersede earlier failing attempts.",
+    "Command log files and screenshots are private local evidence, not committed artifacts.",
+    "The official-logo HTTP header inspection exited 0 but returned HTTP 404; it is not a passing image test.",
+    "Removed only prior generated build cache to free disk; existing database volume and source retained.",
+    "Native devices, private S3 objects, production data/finance and deployment were not exercised."
+  ],
+  "publication_review": {
+    "result": "pass",
+    "reviewed_files": 29,
+    "generated_credentials_or_private_keys": 0,
+    "private_generated_output_paths": 0,
+    "migrations_001_to_004_and_archival_schema": "unchanged",
+    "mobile_source_and_lockfiles": "unchanged",
+    "brand_constants": "unchanged",
+    "git_diff_check": "pass"
+  }
+}

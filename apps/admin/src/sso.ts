@@ -17,13 +17,32 @@ export async function seal(value:Flow|Session,lifeSeconds:number){
 }
 export async function unseal<T>(cookie:string|undefined):Promise<T|null>{
  if(!cookie)return null;
- try{const {payload}=await jwtDecrypt(cookie,secret());return payload as unknown as T}catch{return null}
+ try{
+  const {payload}=await jwtDecrypt(cookie,secret(),{keyManagementAlgorithms:['dir'],contentEncryptionAlgorithms:['A256GCM']});
+  const session=typeof payload.token==='string'&&payload.token.length>0&&typeof payload.subject==='string'&&payload.subject.length>0
+   &&typeof payload.expiresAt==='number'&&Number.isFinite(payload.expiresAt)&&payload.expiresAt>Date.now();
+  const flow=[payload.state,payload.nonce,payload.verifier].every(v=>typeof v==='string'&&v.length>=32);
+  if(!session&&!flow)return null;
+  return payload as unknown as T;
+ }catch{return null}
+}
+export function validSession(value:Session|null):value is Session{
+ return Boolean(value&&typeof value.token==='string'&&value.token.length&&typeof value.subject==='string'
+  &&Number.isFinite(value.expiresAt)&&value.expiresAt>Date.now());
+}
+export function sessionLifetime(expiresIn:unknown){
+ if(typeof expiresIn!=='number'||!Number.isFinite(expiresIn)||expiresIn<=0)throw Error('Invalid token expiry');
+ return Math.min(expiresIn,3600);
+}
+export function sameOriginMutation(req:Request){
+ const configured=process.env.VIVABLUE_APP_ORIGIN;
+ return Boolean(configured&&req.headers.get('origin')===new URL(configured).origin&&req.headers.get('x-vivablue-request')==='admin');
 }
 export async function discovery(){
  const issuer=process.env.VIVABLUE_OIDC_ISSUER;
  if(!issuer||!issuer.startsWith('https://'))throw Error('VIVABLUE_OIDC_ISSUER must be HTTPS');
  const base=issuer.endsWith('/')?issuer:issuer+'/';
- const response=await fetch(new URL('.well-known/openid-configuration',base),{cache:'no-store'});
+ const response=await fetch(new URL('.well-known/openid-configuration',base),{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw Error('Cannot discover identity provider');
  const data=await response.json() as {issuer:string,authorization_endpoint:string,token_endpoint:string,jwks_uri:string};
  if(data.issuer.replace(/\/$/,'')!==issuer.replace(/\/$/,''))throw Error('Identity provider issuer mismatch');
@@ -35,7 +54,7 @@ export async function discovery(){
 export function redirectUri(){
  const origin=process.env.VIVABLUE_APP_ORIGIN;
  if(!origin)throw Error('VIVABLUE_APP_ORIGIN required');
- const u=new URL(origin);if(u.protocol!=='https:'&&u.hostname!=='localhost')throw Error('HTTPS required');
+ const u=new URL(origin);if(u.protocol!=='https:'&&!(u.protocol==='http:'&&u.hostname==='localhost'))throw Error('HTTPS required');
  return new URL('/api/auth/callback',u).toString();
 }
 export async function exchangeAndVerify(code:string,flow:Flow):Promise<Session>{
@@ -45,12 +64,12 @@ export async function exchangeAndVerify(code:string,flow:Flow):Promise<Session>{
  const clientSecret=process.env.VIVABLUE_OIDC_CLIENT_SECRET;
  const headers:Record<string,string>={'content-type':'application/x-www-form-urlencoded'};
  if(clientSecret){headers.authorization='Basic '+Buffer.from(clientId+':'+clientSecret).toString('base64')}
- const res=await fetch(conf.token_endpoint,{method:'POST',headers,body:body.toString(),cache:'no-store'});
+ const res=await fetch(conf.token_endpoint,{method:'POST',headers,body:body.toString(),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});
  if(!res.ok)throw Error('Organization sign-in token exchange failed');
  const token=await res.json() as {access_token?:string,id_token?:string,expires_in?:number};
  if(!token.access_token||!token.id_token)throw Error('Identity provider returned incomplete token set');
  const {payload}=await jwtVerify(token.id_token,createRemoteJWKSet(new URL(conf.jwks_uri)),{issuer:conf.issuer,audience:clientId});
  if(payload.nonce!==flow.nonce||!payload.sub)throw Error('Invalid nonce or subject');
- const seconds=Math.min(Math.max(token.expires_in??900,60),3600);
+ const seconds=sessionLifetime(token.expires_in);
  return {token:token.access_token,expiresAt:Date.now()+seconds*1000,subject:payload.sub};
 }
