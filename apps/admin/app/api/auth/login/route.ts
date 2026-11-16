@@ -8,6 +8,8 @@ export async function GET(){
   const url=new URL(config.authorization_endpoint);
   url.searchParams.set('client_id',client);url.searchParams.set('redirect_uri',redirectUri());
   url.searchParams.set('response_type','code');url.searchParams.set('scope','openid profile email');
+  const audience=process.env.VIVABLUE_OIDC_AUDIENCE;
+  if(audience)url.searchParams.set('audience',audience);
   url.searchParams.set('state',state);url.searchParams.set('nonce',nonce);
   url.searchParams.set('code_challenge',challenge(verifier));url.searchParams.set('code_challenge_method','S256');
   const res=NextResponse.redirect(url);

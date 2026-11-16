@@ -1,9 +1,10 @@
 import type {FastifyInstance,FastifyRequest} from 'fastify';
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
-import {S3Client,HeadObjectCommand,PutObjectCommand,DeleteObjectCommand} from '@aws-sdk/client-s3';
+import {S3Client,HeadObjectCommand,PutObjectCommand,GetObjectCommand} from '@aws-sdk/client-s3';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
-import {pool,queryOne} from './db.js';
+import {pool,queryOne,transaction} from './db.js';
+import {requireManagerWrite} from './management.js';
 import {managerOnly} from './auth.js';
 import type {Config} from './config.js';
 const uuid=z.string().uuid();
@@ -35,13 +36,28 @@ export async function mediaRoutes(app:FastifyInstance,c:Config){
   await pool.query(`UPDATE media_uploads SET status='pending_review' WHERE id=$1 AND user_id=$2 AND status='pending_upload'`,[id,actor(req)]);
   return {uploadId:id,status:'pending_review',message:'Private image received; moderation required before publication.'};
  });
- app.get('/api/admin/media',{preHandler:managerOnly},async()=>({uploads:(await pool.query(`SELECT id,user_id,content_type,byte_size,status,consent_confirmed,created_at
+ app.get('/api/admin/media',{preHandler:managerOnly},async()=>({enabled,uploads:(await pool.query(`SELECT id,user_id,content_type,byte_size,status,consent_confirmed,created_at,review_note,reviewed_at
   FROM media_uploads ORDER BY created_at DESC LIMIT 100`)).rows}));
+ app.get('/api/admin/media/:id/preview',{preHandler:managerOnly},async(req,reply)=>{
+  if(!enabled)throw fail('Private storage review is not configured',503);
+  const {id}=z.object({id:uuid}).parse(req.params);
+  const row=await queryOne<any>(`SELECT object_key FROM media_uploads WHERE id=$1 AND consent_confirmed=true AND status IN ('pending_review','approved')`,[id]);
+  if(!row)throw fail('Image unavailable for review',404);
+  const url=await getSignedUrl(s3,new GetObjectCommand({Bucket:c.S3_BUCKET!,Key:row.object_key,ResponseCacheControl:'no-store'}),{expiresIn:60});
+  reply.header('Cache-Control','no-store');return {url,expiresInSeconds:60};
+ });
  app.post('/api/admin/media/:id/review',{preHandler:managerOnly},async req=>{
   const {id}=z.object({id:uuid}).parse(req.params);
-  const {approve}=z.object({approve:z.boolean()}).parse(req.body);
-  const r=await queryOne<any>(`UPDATE media_uploads SET status=$2,reviewer_id=$3
-   WHERE id=$1 AND status='pending_review' RETURNING id,status`,[id,approve?'approved':'rejected',actor(req)]);
-  if(!r)throw fail('Media not awaiting review',409);return {upload:r};
+  const v=z.object({approve:z.boolean(),reviewNote:z.string().trim().min(10).max(1500),rightsConfirmed:z.boolean().default(false)}).strict().parse(req.body);
+  if(v.approve&&(!enabled||!v.rightsConfirmed))throw fail('Private preview configuration and explicit publication-rights confirmation are required',409);
+  const r=await transaction(async db=>{
+   await requireManagerWrite(db,req);
+   const row=await queryOne<any>(`UPDATE media_uploads SET status=$2,reviewer_id=$3,review_note=$4,reviewed_at=now()
+    WHERE id=$1 AND status='pending_review' AND ($5=false OR consent_confirmed=true) RETURNING id,status`,
+    [id,v.approve?'approved':'rejected',actor(req),v.reviewNote,v.approve],db);
+   if(!row)throw fail('Media not awaiting review or consent missing',409);
+   await db.query('INSERT INTO audit_logs(actor_id,action,resource_id,details) VALUES($1,$2,$3,$4)',[actor(req),'media.review',id,JSON.stringify(v)]);
+   return row;
+  });return {upload:r};
  });
 }

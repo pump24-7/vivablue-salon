@@ -1,0 +1,775 @@
+{
+  "scope": "Stage 1 local build stabilization; no production or device certification",
+  "source_base": "d5371a4f38a27aa1e65811b4769278575685dfb4",
+  "node": "24.22.1",
+  "npm": "11.9.0",
+  "commands": [
+    {
+      "id": "install-api",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "install",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:51:52.119394+00:00",
+      "elapsed_seconds": 5.02,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/install-api.log"
+    },
+    {
+      "id": "install-admin",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "install",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:51:52.127181+00:00",
+      "elapsed_seconds": 11.28,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/install-admin.log"
+    },
+    {
+      "id": "install-mobile",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "install",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:51:52.115332+00:00",
+      "elapsed_seconds": 15.39,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/install-mobile.log"
+    },
+    {
+      "id": "admin-typecheck",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T04:58:33.628388+00:00",
+      "elapsed_seconds": 9.32,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/admin-typecheck.log"
+    },
+    {
+      "id": "api-unit",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "started_utc": "2026-11-15T04:58:33.951202+00:00",
+      "elapsed_seconds": 9.04,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-unit.log"
+    },
+    {
+      "id": "mobile-typecheck",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T04:58:33.804567+00:00",
+      "elapsed_seconds": 9.89,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-typecheck.log"
+    },
+    {
+      "id": "api-typecheck",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T04:58:33.711472+00:00",
+      "elapsed_seconds": 10.55,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-typecheck.log"
+    },
+    {
+      "id": "api-build",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-15T04:58:33.792040+00:00",
+      "elapsed_seconds": 10.55,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-build.log"
+    },
+    {
+      "id": "postgres-create",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "run",
+        "--detach",
+        "--name",
+        "vivablue-stage1-pg",
+        "--publish",
+        "127.0.0.1:55433:5432",
+        "--tmpfs",
+        "/var/lib/postgresql/data",
+        "--env",
+        "POSTGRES_DB=vivablue_test",
+        "--env",
+        "POSTGRES_USER=vivablue_test",
+        "--env",
+        "POSTGRES_PASSWORD=stage1-local-only",
+        "postgres:16"
+      ],
+      "started_utc": "2026-11-15T04:59:03.136245+00:00",
+      "elapsed_seconds": 6.61,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/postgres-create.log"
+    },
+    {
+      "id": "static-v03",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "scripts/audit_v03.py",
+        "--output",
+        "/workspace/work/stage1/evidence/static-v03.json"
+      ],
+      "started_utc": "2026-11-15T04:59:14.803985+00:00",
+      "elapsed_seconds": 0.92,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/static-v03.log"
+    },
+    {
+      "id": "expo-check",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_CACHE=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "install",
+        "--check"
+      ],
+      "started_utc": "2026-11-15T04:59:14.804122+00:00",
+      "elapsed_seconds": 1.01,
+      "exit_code": 7,
+      "log": "/workspace/work/stage1/evidence/expo-check.log"
+    },
+    {
+      "id": "api-dependency-tree",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "ls",
+        "--all",
+        "--json"
+      ],
+      "started_utc": "2026-11-15T04:59:25.387734+00:00",
+      "elapsed_seconds": 1.44,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-dependency-tree.log"
+    },
+    {
+      "id": "expo-check-no-telemetry",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_CACHE=1",
+        "EXPO_NO_TELEMETRY=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "install",
+        "--check"
+      ],
+      "started_utc": "2026-11-15T04:59:25.490443+00:00",
+      "elapsed_seconds": 2.3,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/expo-check-no-telemetry.log"
+    },
+    {
+      "id": "api-integration",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "env",
+        "TEST_DATABASE_URL=postgres://vivablue_test:stage1-local-only@127.0.0.1:55433/vivablue_test",
+        "npm",
+        "run",
+        "test:integration"
+      ],
+      "started_utc": "2026-11-15T04:59:25.420890+00:00",
+      "elapsed_seconds": 6.23,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-integration.log"
+    },
+    {
+      "id": "admin-build",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "env",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-15T04:59:14.781689+00:00",
+      "elapsed_seconds": 18.16,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/admin-build.log"
+    },
+    {
+      "id": "api-ci",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:59:57.042963+00:00",
+      "elapsed_seconds": 6.48,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-ci.log"
+    },
+    {
+      "id": "admin-ci",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:59:57.031105+00:00",
+      "elapsed_seconds": 13.93,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/admin-ci.log"
+    },
+    {
+      "id": "mobile-ci",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T04:59:57.023577+00:00",
+      "elapsed_seconds": 14.24,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-ci.log"
+    },
+    {
+      "id": "api-audit",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T05:01:31.747290+00:00",
+      "elapsed_seconds": 1.99,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-audit.log"
+    },
+    {
+      "id": "admin-dependency-tree",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "ls",
+        "--all",
+        "--json"
+      ],
+      "started_utc": "2026-11-15T05:01:32.115770+00:00",
+      "elapsed_seconds": 2.12,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/admin-dependency-tree.log"
+    },
+    {
+      "id": "mobile-dependency-tree",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "ls",
+        "--all",
+        "--json"
+      ],
+      "started_utc": "2026-11-15T05:01:31.884972+00:00",
+      "elapsed_seconds": 3.33,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-dependency-tree.log"
+    },
+    {
+      "id": "admin-audit",
+      "cwd": "/workspace/work/vivablue-salon/apps/admin",
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T05:01:32.346389+00:00",
+      "elapsed_seconds": 4.14,
+      "exit_code": 1,
+      "log": "/workspace/work/stage1/evidence/admin-audit.log"
+    },
+    {
+      "id": "mobile-audit",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T05:01:32.201703+00:00",
+      "elapsed_seconds": 8.14,
+      "exit_code": 1,
+      "log": "/workspace/work/stage1/evidence/mobile-audit.log"
+    },
+    {
+      "id": "expo-doctor",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "NODE_USE_ENV_PROXY=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "--yes",
+        "expo-doctor"
+      ],
+      "started_utc": "2026-11-15T05:01:32.200930+00:00",
+      "elapsed_seconds": 9.17,
+      "exit_code": 1,
+      "log": "/workspace/work/stage1/evidence/expo-doctor.log"
+    },
+    {
+      "id": "mobile-export-android",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "CI=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "export",
+        "--platform",
+        "android",
+        "--output-dir",
+        "/workspace/work/stage1/android-export"
+      ],
+      "started_utc": "2026-11-15T05:01:31.999494+00:00",
+      "elapsed_seconds": 15.28,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-export-android.log"
+    },
+    {
+      "id": "expo-install-constants",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "install",
+        "expo-constants",
+        "--npm"
+      ],
+      "started_utc": "2026-11-15T05:02:18.544343+00:00",
+      "elapsed_seconds": 7.45,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/expo-install-constants.log"
+    },
+    {
+      "id": "api-startup-smoke",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "node",
+        "/workspace/work/stage1/startup-smoke.mjs"
+      ],
+      "started_utc": "2026-11-15T05:02:59.772377+00:00",
+      "elapsed_seconds": 2.59,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-startup-smoke.log"
+    },
+    {
+      "id": "mobile-ci-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T05:04:00.283984+00:00",
+      "elapsed_seconds": 9.57,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-ci-final.log"
+    },
+    {
+      "id": "expo-check-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "install",
+        "--check"
+      ],
+      "started_utc": "2026-11-15T05:04:27.910533+00:00",
+      "elapsed_seconds": 2.43,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/expo-check-final.log"
+    },
+    {
+      "id": "mobile-typecheck-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T05:04:27.757931+00:00",
+      "elapsed_seconds": 6.53,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-typecheck-final.log"
+    },
+    {
+      "id": "expo-doctor-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "NODE_USE_ENV_PROXY=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "--yes",
+        "expo-doctor"
+      ],
+      "started_utc": "2026-11-15T05:04:27.735815+00:00",
+      "elapsed_seconds": 7.28,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/expo-doctor-final.log"
+    },
+    {
+      "id": "mobile-export-android-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "CI=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "export",
+        "--platform",
+        "android",
+        "--output-dir",
+        "/workspace/work/stage1/android-export-final"
+      ],
+      "started_utc": "2026-11-15T05:04:27.754645+00:00",
+      "elapsed_seconds": 13.44,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-export-android-final.log"
+    },
+    {
+      "id": "foundation-check",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "scripts/check_project.py"
+      ],
+      "started_utc": "2026-11-15T05:05:21.668084+00:00",
+      "elapsed_seconds": 0.05,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/foundation-check.log"
+    },
+    {
+      "id": "git-diff-check",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "started_utc": "2026-11-15T05:05:21.730463+00:00",
+      "elapsed_seconds": 0.01,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/git-diff-check.log"
+    },
+    {
+      "id": "mobile-audit-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--cache",
+        "/workspace/work/npm-cache"
+      ],
+      "started_utc": "2026-11-15T05:05:21.806207+00:00",
+      "elapsed_seconds": 1.87,
+      "exit_code": 1,
+      "log": "/workspace/work/stage1/evidence/mobile-audit-final.log"
+    },
+    {
+      "id": "mobile-export-ios-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/mobile",
+      "command": [
+        "env",
+        "EXPO_NO_TELEMETRY=1",
+        "EXPO_NO_CACHE=1",
+        "CI=1",
+        "npm_config_cache=/workspace/work/npm-cache",
+        "npx",
+        "expo",
+        "export",
+        "--platform",
+        "ios",
+        "--output-dir",
+        "/workspace/work/stage1/ios-export-final"
+      ],
+      "started_utc": "2026-11-15T05:05:21.798432+00:00",
+      "elapsed_seconds": 9.65,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/mobile-export-ios-final.log"
+    },
+    {
+      "id": "postgres-stop",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "stop",
+        "vivablue-stage1-pg"
+      ],
+      "started_utc": "2026-11-15T05:08:23.789766+00:00",
+      "elapsed_seconds": 0.17,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/postgres-stop.log"
+    },
+    {
+      "id": "postgres-restart",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "start",
+        "vivablue-stage1-pg"
+      ],
+      "started_utc": "2026-11-15T05:08:49.053709+00:00",
+      "elapsed_seconds": 0.22,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/postgres-restart.log"
+    },
+    {
+      "id": "api-typecheck-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_utc": "2026-11-15T05:08:49.434528+00:00",
+      "elapsed_seconds": 3.7,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-typecheck-final.log"
+    },
+    {
+      "id": "api-integration-final",
+      "cwd": "/workspace/work/vivablue-salon/apps/api",
+      "command": [
+        "env",
+        "TEST_DATABASE_URL=postgres://vivablue_test:stage1-local-only@127.0.0.1:55433/vivablue_test",
+        "npm",
+        "run",
+        "test:integration"
+      ],
+      "started_utc": "2026-11-15T05:09:20.654652+00:00",
+      "elapsed_seconds": 5.98,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/api-integration-final.log"
+    },
+    {
+      "id": "integration-safety-guards",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "python3",
+        "/workspace/work/stage1/verify-guards.py"
+      ],
+      "started_utc": "2026-11-15T05:09:22.134734+00:00",
+      "elapsed_seconds": 4.54,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/integration-safety-guards.log"
+    },
+    {
+      "id": "git-diff-check-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "started_utc": "2026-11-15T05:09:55.390689+00:00",
+      "elapsed_seconds": 0.01,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/git-diff-check-final.log"
+    },
+    {
+      "id": "postgres-stop-final",
+      "cwd": "/workspace/work/vivablue-salon",
+      "command": [
+        "env",
+        "-u",
+        "DOCKER_HOST",
+        "-u",
+        "DOCKER_CONTEXT",
+        "-u",
+        "DOCKER_TLS",
+        "-u",
+        "DOCKER_TLS_VERIFY",
+        "-u",
+        "DOCKER_CERT_PATH",
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "stop",
+        "vivablue-stage1-pg"
+      ],
+      "started_utc": "2026-11-15T05:09:55.579270+00:00",
+      "elapsed_seconds": 0.16,
+      "exit_code": 0,
+      "log": "/workspace/work/stage1/evidence/postgres-stop-final.log"
+    }
+  ],
+  "integration_guard_checks": [
+    {
+      "input": "unset",
+      "exit_code": 1,
+      "rejected_before_database_access": true
+    },
+    {
+      "input": "remote",
+      "exit_code": 1,
+      "rejected_before_database_access": true
+    },
+    {
+      "input": "ordinary-local-database",
+      "exit_code": 1,
+      "rejected_before_database_access": true
+    },
+    {
+      "input": "query-host-override",
+      "exit_code": 1,
+      "rejected_before_database_access": true
+    }
+  ],
+  "dependency_audit_totals": {
+    "api": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "mobile": {
+      "info": 0,
+      "low": 1,
+      "moderate": 16,
+      "high": 5,
+      "critical": 0,
+      "total": 22
+    },
+    "admin": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 1,
+      "critical": 0,
+      "total": 2
+    }
+  },
+  "unchanged_migration_sha256": {
+    "db/migrations/001_v01_baseline.sql": "03ab912273ea5b71a58d7544d737828ccadccc130eb0c08a96e9188b035395ee",
+    "db/migrations/002_v02_salon_experience.sql": "c1ae91557c21299bd3a312a66e6705e100659d84c4e015dd6d57590e0b9cb8bb",
+    "db/migrations/003_v03_retire_rewards_memberships.sql": "5609af165f7ae7e8fec16749df115fa5a9a91a4ae8d0878f72d21138681b6ab7"
+  },
+  "additional_environment_failures": "Initial second PostgreSQL container creation failed with ENOSPC; five validation shell starts were blocked by sandbox mount creation ENOSPC before the command recorder could run. Duplicate earlier-audit dependencies and its stopped tmpfs container were removed; all affected validations subsequently passed.",
+  "log_availability": "Log paths identify files in this execution workspace, not files committed to the repository."
+}

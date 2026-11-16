@@ -7,8 +7,9 @@ export async function GET(req:NextRequest){
  try{
   const session=await exchangeAndVerify(code,flow);
   const res=NextResponse.redirect(new URL('/',redirectUri()));
-  res.cookies.set(authCookie,await seal(session,Math.min(3600,Math.ceil((session.expiresAt-Date.now())/1000))),
-   {httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:3600});
+  const life=Math.max(1,Math.floor((session.expiresAt-Date.now())/1000));
+  res.cookies.set(authCookie,await seal(session,life),
+   {httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:life});
   res.cookies.delete(flowCookie);return res;
- }catch(e){return NextResponse.json({message:'Sign-in failed',detail:String(e)},{status:401})}
+ }catch{const res=NextResponse.json({message:'Sign-in failed. Start a new organization sign-in.'},{status:401});res.cookies.delete(flowCookie);return res}
 }

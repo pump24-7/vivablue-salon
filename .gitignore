@@ -10,3 +10,7 @@ dist
 coverage
 
 incoming/
+work/
+apps/mobile/android/
+apps/mobile/ios/
+__pycache__/

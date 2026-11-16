@@ -5,8 +5,9 @@
 ## Critical gates
 
 - [ ] Salon owner authorizes name, branding, web photos, imagery, product features and app identifiers.
-- [ ] Install dependencies from registry and commit lockfiles after validation.
-- [ ] Package-resolved TypeScript API/mobile/admin builds and actual Expo 54 compatibility check.
+- [x] Install dependencies from registry; generate and verify per-application lockfiles with `npm ci` (Stage 1).
+- [ ] Complete dependency vulnerability remediation and review before release; current mobile/admin audit findings remain open.
+- [x] Package-resolved TypeScript API/mobile/admin checks, API/Next builds and Expo 54 compatibility check (Stage 1).
 - [ ] Create isolated managed PostgreSQL and run migrations on staging, test backups and restore; do not touch Nestease DB.
 - [ ] Run transaction/concurrency tests for overlap exclusion and event seat capacity; add time-off/station resources and multi-service bookings.
 - [ ] Configure organization OIDC/JWKS/PKCE with access token audience, admin session expiry, logout and revocation; check every permission boundary.
@@ -16,7 +17,7 @@
 - [ ] Configure and exercise S3 private upload confirmation, data deletion and retention scheduling.
 - [ ] Verify retirement of legacy subscription programs, provider-side billing status, cancellation/notice decisions, and archived finance records. No payment checkout is active in v0.3.
 - [ ] Build service-level deposits/POS and retail ecommerce ONLY if salon chooses these product lines.
-- [ ] Add event cancellation, multi-seat edits/waitlist, paid event purchase and email/SMS notice workflows.
+- [ ] Validate Stage 4 event cancellation in staging; complete multi-seat edits/waitlist, paid event decisions and email/SMS notice workflows.
 - [ ] Complete bilingual copy audit, screen reader and large text behavior, privacy export/deletion and email/SMS opt-ins.
 - [ ] Run iOS/Android actual-device tests with OAuth deep-links, Apple Pay/Google Pay where applicable, recovery/revocation, and crash-free session handling.
 - [ ] Set observability, backups, API rate-limit/monitoring, audit trails, alerts, incident response and data retention.
@@ -31,4 +32,6 @@
 
 ## Current QA result
 
-No live OIDC, Stripe, PostgreSQL or AWS test tenant available in this execution environment. Registry DNS unavailable, and no package cache for dependencies; package-resolved builds are blocked. Static syntax parsing and source checks are documented in `BUILD_REPORT.json`.
+The original static-only delivery report remains in `BUILD_REPORT.json`. Stage 1 build stabilization, Stage 2 local environment, Stage 3 customer workflows and Stage 4 salon management are recorded in their `STAGE*_VALIDATION.md` / `STAGE1_STABILIZATION.md` reports. The development branch is published as an unmerged draft PR. Current mobile tests, real API/database/customer/admin flows, and Android/iOS JavaScript exports pass; native binaries and device journeys remain unverified. Profile editing, shared language and in-app appointment updates are implemented. External notification delivery, provider recovery/verification, private-media provider verification, final staff/owner acceptance, dependency remediation and release gates remain open. No production service, live payment, merge or deployment is included.
+
+Stage 4 supplies tested management controls, audited transactions and API role administration. Its report records local backend/browser results and limits. These passes do not approve real business data, certify storage/media delivery, replace production identity-provider setup or satisfy device release gates. The preserved official-site logo URL returned HTTP 404; use an owner-approved original asset before release.
